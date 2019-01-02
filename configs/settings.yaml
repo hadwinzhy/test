@@ -1,0 +1,42 @@
+sentry:
+  dsn: "https://11661f12be644f2cad4d445c4039850a:a8e48fed4aeb4f00bf62c0261bfead9f@sentry.io/1231880"
+
+dev:
+  db:
+    host: "retail.readsense.cn"
+    port: "5432"
+    user: "postgres"
+    password: "root"
+    dbname: "venus_dev"
+    sslmode: "disable"
+  titan:
+    host: "http://114.80.100.145:8887"
+    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
+    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+
+test:
+  db:
+    host: "retail.readsense.cn"
+    port: "5432"
+    user: "postgres"
+    password: "root"
+    dbname: "venus_test"
+    sslmode: "disable"
+  titan:
+    host: "http://114.80.100.145:8887"
+    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
+    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+
+production:
+  db:
+    host: "rm-2zehteu0g2hrfj04wqo.pg.rds.aliyuncs.com"
+    port: "3432"
+    user: "lightyear"
+    password: "Cu!VhbCuQ5jk"
+    dbname: "venus_production"
+    sslmode: "disable"
+  titan:
+    host: "http://101.251.99.164:8887"
+    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
+    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+
