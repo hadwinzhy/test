@@ -37,9 +37,9 @@ COPY Gopkg.toml .
 
 COPY Makefile .
 
-RUN make install
-
 COPY . .
+
+RUN make install
 
 RUN make prod
 
