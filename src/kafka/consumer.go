@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,33 +13,33 @@ import (
 	cluster "github.com/bsm/sarama-cluster"
 )
 
-var headCountCustomerParams struct {
+var headCountConsumerParams struct {
 	brokers []string
 	groupID string
 	topics  []string
 }
 
-func customerInit() {
+func consumerInit() {
 	host := viper.Get(configs.ENV + ".kafka.host")
 	port := viper.Get(configs.ENV + ".kafka.port")
 	groupName := viper.GetString(configs.ENV + ".kafka.group")
 	topic := viper.Get(configs.ENV + ".kafka.topic")
 	log.Println(fmt.Sprintf("env: %s,host:%s, port: %s, groupID: %s, topic: %s", configs.ENV, host, port, groupName, topic))
-	headCountCustomerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
-	headCountCustomerParams.groupID = groupName
-	headCountCustomerParams.topics = []string{topic.(string)}
+	headCountConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	headCountConsumerParams.groupID = groupName
+	headCountConsumerParams.topics = []string{topic.(string)}
 }
 
-func HeadCountCustomer() {
-	customerInit()
-	StartForCustomer(
-		headCountCustomerParams.brokers,
-		headCountCustomerParams.groupID,
-		headCountCustomerParams.topics,
+func HeadCountConsumer() {
+	consumerInit()
+	StartForConsumer(
+		headCountConsumerParams.brokers,
+		headCountConsumerParams.groupID,
+		headCountConsumerParams.topics,
 	)
 }
 
-func StartForCustomer(brokers []string, groupID string, topics []string) {
+func StartForConsumer(brokers []string, groupID string, topics []string) {
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Group.Return.Notifications = true
@@ -78,9 +79,24 @@ func StartForCustomer(brokers []string, groupID string, topics []string) {
 	}
 }
 
+type Info struct {
+	ApiID     string `json:"api_id"`
+	ApiSecret string `json:"api_secret"`
+	FaceID    string `json:"face_id"`
+	GroupID   string `json:"group_id"`
+}
+
 func infoHandler(values []byte) {
 	// step one: titan
 	// step two: database event by person_id
 	// step three : count and save into database
 	fmt.Println(string(values))
+	var info Info
+	if err := json.Unmarshal(values, info); err != nil {
+		log.Println(err)
+		return
+	}
+
 }
+
+func fetchDataByTitan() {}

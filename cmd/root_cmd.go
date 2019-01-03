@@ -32,7 +32,7 @@ var rootCmd = &cobra.Command{
 		// Step 5: Sentry
 		initializers.SentryConfig()
 
-		go kafka.HeadCountCustomer()
+		go kafka.HeadCountConsumer()
 		// Step 5: init router
 		// go func() {
 		r := gin.Default()
