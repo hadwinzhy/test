@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,13 @@ func PostProducerDataHandler(context *gin.Context) {
 		MakeResponse(context, http.StatusBadRequest, "check params")
 		return
 	}
+
+	server := HeadCountProducer()
+	defer func() {
+		if err := server.Close(); err != nil {
+			log.Println("Failed to close server", err)
+		}
+	}()
 	ProducerServer.WithAccessLog(params.Topic, params.Key, params.Values)
 	MakeResponse(context, http.StatusOK, params)
 }

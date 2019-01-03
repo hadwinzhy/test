@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"siren/initializers"
 	"siren/pkg/database"
@@ -32,13 +31,6 @@ var rootCmd = &cobra.Command{
 
 		// Step 5: Sentry
 		initializers.SentryConfig()
-
-		server := kafka.HeadCountProducer()
-		defer func() {
-			if err := server.Close(); err != nil {
-				log.Println("Failed to close server", err)
-			}
-		}()
 
 		go kafka.HeadCountCustomer()
 		// Step 5: init router
