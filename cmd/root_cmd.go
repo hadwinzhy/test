@@ -3,11 +3,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"siren/initializers"
 	"siren/pkg/database"
 	"siren/pkg/logger"
 	"siren/pkg/routers"
+	"siren/src/kafka"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -31,11 +33,19 @@ var rootCmd = &cobra.Command{
 		// Step 5: Sentry
 		initializers.SentryConfig()
 
+		server := kafka.HeadCountProducer()
+		defer func() {
+			if err := server.Close(); err != nil {
+				log.Println("Failed to close server", err)
+			}
+		}()
+
+		go kafka.HeadCountCustomer()
 		// Step 5: init router
 		// go func() {
 		r := gin.Default()
 		routers.InitRouters(r)
-		r.Run(":8081")
+		r.Run(":8088")
 		// }()
 
 		// Step 6: init rpc
