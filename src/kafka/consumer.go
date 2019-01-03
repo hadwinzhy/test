@@ -3,10 +3,16 @@ package kafka
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"siren/configs"
+	"siren/pkg/database"
+	"siren/pkg/titan"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -90,13 +96,67 @@ func infoHandler(values []byte) {
 	// step one: titan
 	// step two: database event by person_id
 	// step three : count and save into database
-	fmt.Println(string(values))
-	var info Info
+
+	var info interface{}
 	if err := json.Unmarshal(values, info); err != nil {
 		log.Println(err)
 		return
 	}
+	fetchDataByTitan("", info.(Info))
 
 }
 
-func fetchDataByTitan() {}
+func fetchDataByTitan(link string, info Info) {
+	response, err := http.PostForm(link, url.Values{
+		"api_id":     {info.ApiID},
+		"api_secret": {info.ApiSecret},
+		"face_id":    {info.FaceID},
+		"group_id":   {info.GroupID},
+		"top":        {"20"},
+	})
+
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+
+	var values interface{}
+	responseByte, _ := ioutil.ReadAll(response.Body)
+	if err := json.Unmarshal(responseByte, values); err != nil {
+		return
+	}
+	var c chan string
+	worker(c, values.(titan.CandidateData))
+	personIDHandler(c)
+
+}
+
+func worker(c chan string, values titan.CandidateData) {
+	for _, data := range values.Candidates {
+		c <- data.PersonID
+	}
+}
+
+type result struct {
+	PersonID   string    `json:"person_id"`
+	CapturedAt time.Time `json:"captured_at"`
+}
+
+type results []result
+
+func personIDHandler(c chan string) {
+	now := time.Now()
+	right := now.Format("2006-01-02 15:04:05")
+	left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
+	go func(left string, right string) {
+		for {
+			personID := <-c
+			sql := fmt.Sprintf(`SELECT person_id, captured_at FROM events WHERE person_id = %s AND captured_at BETWEEN %s AND %s`,
+				personID, left, right)
+			var resultsValues results
+			if dbError := database.POSTGRES.Raw(sql).Scan(&resultsValues).Error; dbError != nil {
+				return
+			}
+		}
+	}(left, right)
+}
