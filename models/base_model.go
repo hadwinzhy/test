@@ -69,5 +69,6 @@ func GetModels() []interface{} {
 		&FrequentCustomerGroup{},
 		&FrequentCustomerReport{},
 		&FrequentCustomerRule{},
+		&FrequentCustomerHighTimeTable{},
 	}
 }
