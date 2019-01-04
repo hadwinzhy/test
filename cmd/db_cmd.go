@@ -66,7 +66,7 @@ func MigrateTables() {
 }
 
 func createBitMaps() {
-	newBitMap := models.FCPeopleBitMap{
+	newBitMap := models.FrequentCustomerPeopleBitMap{
 		PersonID: "a random id",
 		BitMap:   "00000000000000000000000000000010",
 	}
