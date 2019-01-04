@@ -39,6 +39,9 @@ var dbCmd = &cobra.Command{
 		case "migrate":
 			MigrateTables()
 			fmt.Println("Migration Done!")
+
+		case "bitmap":
+			createBitMaps()
 		}
 	},
 }
@@ -60,4 +63,13 @@ func MigrateTables() {
 		fmt.Print("--- Migrate Table")
 		database.POSTGRES.AutoMigrate(model)
 	}
+}
+
+func createBitMaps() {
+	newBitMap := models.FCPeopleBitMap{
+		PersonID: "a random id",
+		BitMap:   "00000000000000000000000000000010",
+	}
+
+	database.POSTGRES.Save(&newBitMap)
 }
