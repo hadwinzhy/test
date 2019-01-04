@@ -13,11 +13,12 @@ import (
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/titan"
+	"siren/utils"
 	"time"
 
 	"github.com/spf13/viper"
 
-	cluster "github.com/bsm/sarama-cluster"
+	"github.com/bsm/sarama-cluster"
 )
 
 var CountFrequentConsumerParams struct {
@@ -88,6 +89,8 @@ func StartForConsumer(brokers []string, groupID string, topics []string) {
 }
 
 type Info struct {
+	CompanyID uint   `json:"company_id"`
+	ShopID    uint   `json:"shop_id"`
 	ApiID     string `json:"api_id"`
 	ApiSecret string `json:"api_secret"`
 	FaceID    string `json:"face_id"`
@@ -104,8 +107,25 @@ func infoHandler(values []byte) {
 		log.Println(err)
 		return
 	}
+	saveGroupInfo(info.(Info))
 	fetchDataByTitan("", info.(Info))
 
+}
+
+// save group
+func saveGroupInfo(info Info) bool {
+	var oneGroup models.FrequentCustomerGroup
+	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
+		oneGroup = models.FrequentCustomerGroup{
+			CompanyID: info.CompanyID,
+			ShopID:    info.ShopID,
+			GroupUUID: utils.GenerateUUID(20),
+		}
+		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func fetchDataByTitan(link string, info Info) {
@@ -163,10 +183,10 @@ func personIDHandler(c chan string) {
 			if dbError := database.POSTGRES.Where("person_uuid = ?", personID).First(&one).Error; dbError != nil {
 				day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
 				one = models.FrequentCustomerCount{
-					PersonUUID:     personID,
-					TimeEventVisit: len(resultsValues),
-					Day:            day,
-					CapturedAt:     time.Now(),
+					PersonUUID:      personID,
+					EventVisitCount: len(resultsValues),
+					Day:             day,
+					CapturedAt:      time.Now(),
 				}
 				database.POSTGRES.Save(&one)
 			} else {
