@@ -3,7 +3,6 @@ package routers
 import (
 	"siren/pkg/logger"
 	"siren/pkg/middleware"
-	"siren/src/kafka"
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gin-contrib/sentry"
@@ -22,9 +21,5 @@ func InitRouters(r *gin.Engine) {
 	router404Handler(r)
 
 	router500Handler(r)
-	group := r.Group("/v1/api")
-	{
-		kafka.Register(group)
-	}
 
 }
