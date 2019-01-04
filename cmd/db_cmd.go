@@ -66,10 +66,10 @@ func MigrateTables() {
 }
 
 func createBitMaps() {
-	newBitMap := models.FrequentCustomerPeopleBitMap{
-		PersonID: "a random id",
-		BitMap:   "00000000000000000000000000000010",
-	}
+	// newBitMap := models.FrequentCustomerPeopleBitMap{
+	// 	PersonID: "a random id",
+	// 	BitMap:   "00000000000000000000000000000010",
+	// }
 
-	database.POSTGRES.Save(&newBitMap)
+	// database.POSTGRES.Save(&newBitMap)
 }
