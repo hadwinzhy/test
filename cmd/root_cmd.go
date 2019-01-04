@@ -8,6 +8,7 @@ import (
 	"siren/pkg/database"
 	"siren/pkg/logger"
 	"siren/pkg/routers"
+	"siren/src/kafka"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
@@ -31,11 +32,12 @@ var rootCmd = &cobra.Command{
 		// Step 5: Sentry
 		initializers.SentryConfig()
 
+		go kafka.CountFrequentConsumer()
 		// Step 5: init router
 		// go func() {
 		r := gin.Default()
 		routers.InitRouters(r)
-		r.Run(":8081")
+		r.Run(":8088")
 		// }()
 
 		// Step 6: init rpc
