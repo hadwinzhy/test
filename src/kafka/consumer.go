@@ -14,7 +14,10 @@ import (
 	"siren/pkg/database"
 	"siren/pkg/titan"
 	"siren/utils"
+	"strings"
 	"time"
+
+	"github.com/jinzhu/gorm"
 
 	"github.com/spf13/viper"
 
@@ -27,6 +30,10 @@ var CountFrequentConsumerParams struct {
 	topics  []string
 }
 
+var titanParams struct {
+	identificationURL string
+}
+
 func consumerInit() {
 	// todo: fix use config.fetchValue
 	host := viper.Get(configs.ENV + ".kafka.host")
@@ -37,6 +44,9 @@ func consumerInit() {
 	CountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
 	CountFrequentConsumerParams.groupID = groupName
 	CountFrequentConsumerParams.topics = []string{topic.(string)}
+
+	// todo: titan faces/identification
+	titanParams.identificationURL = fmt.Sprintf("http://" + configs.FetchFieldValue("TitanHOST") + "/faces/identification")
 }
 
 func CountFrequentConsumer() {
@@ -107,13 +117,18 @@ func infoHandler(values []byte) {
 		log.Println(err)
 		return
 	}
-	saveGroupInfo(info.(Info))
-	fetchDataByTitan("", info.(Info))
+
+	var group *models.FrequentCustomerGroup
+	var ok bool
+	if ok, group = saveGroupInfo(info.(Info)); !ok {
+		return
+	}
+	fetchDataByTitan(group, info.(Info))
 
 }
 
 // save group
-func saveGroupInfo(info Info) bool {
+func saveGroupInfo(info Info) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
 	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
@@ -122,14 +137,14 @@ func saveGroupInfo(info Info) bool {
 			GroupUUID: utils.GenerateUUID(20),
 		}
 		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, &oneGroup
 }
 
-func fetchDataByTitan(link string, info Info) {
-	response, err := http.PostForm(link, url.Values{
+func fetchDataByTitan(group *models.FrequentCustomerGroup, info Info) {
+	response, err := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
 		"face_id":    {info.FaceID},
@@ -147,16 +162,12 @@ func fetchDataByTitan(link string, info Info) {
 	if err := json.Unmarshal(responseByte, values); err != nil {
 		return
 	}
-	var c chan string
-	worker(c, values.(titan.CandidateData))
-	personIDHandler(c)
-
-}
-
-func worker(c chan string, values titan.CandidateData) {
-	for _, data := range values.Candidates {
-		c <- data.PersonID
+	var personIDs []string
+	for _, value := range values.(titan.CandidateData).Candidates {
+		personIDs = append(personIDs, value.PersonID)
 	}
+	personIDHandler(group, personIDs)
+
 }
 
 type result struct {
@@ -166,34 +177,62 @@ type result struct {
 
 type results []result
 
-func personIDHandler(c chan string) {
+func personIDHandler(group *models.FrequentCustomerGroup, personIDs []string) {
+	personIDString := strings.Join(personIDs, ",")
 	now := time.Now()
 	right := now.Format("2006-01-02 15:04:05")
 	left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
-	go func(left string, right string) {
-		for {
-			personID := <-c
-			sql := fmt.Sprintf(`SELECT person_id, captured_at FROM events WHERE person_id = %s AND captured_at BETWEEN %s AND %s`,
-				personID, left, right)
-			var resultsValues results
-			if dbError := database.POSTGRES.Raw(sql).Scan(&resultsValues).Error; dbError != nil {
-				return
+	{
+		sql := fmt.Sprintf(`SELECT person_id, captured_at FROM events WHERE person_id in %s AND captured_at BETWEEN %s AND %s ORDER BY captured_at desc`,
+			personIDString, left, right)
+		var resultsValues results
+
+		database.POSTGRES.Raw(sql).Scan(&resultsValues)
+
+		var one models.FrequentCustomerReport
+		if dbError := database.POSTGRES.Where("frequent_customer_group_id = ?", group.ID).First(&one).Error; dbError != nil {
+			day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
+			one = models.FrequentCustomerReport{
+				FrequentCustomerGroupID: group.ID,
+				Date:                    day,
+				SumTimes:                uint(len(resultsValues)),
 			}
-			var one models.FrequentCustomerCount
-			if dbError := database.POSTGRES.Where("person_uuid = ?", personID).First(&one).Error; dbError != nil {
-				day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
-				one = models.FrequentCustomerCount{
-					PersonUUID:      personID,
-					EventVisitCount: len(resultsValues),
-					Day:             day,
-					CapturedAt:      time.Now(),
-				}
-				database.POSTGRES.Save(&one)
+			if len(resultsValues) > 3 {
+				one.HighFrequency = 1
+				one.SumInterval = uint(float64(time.Now().Sub(resultsValues[0].CapturedAt).Hours())/24 + 1)
+			} else if len(resultsValues) < 3 && len(resultsValues) != 0 {
+				one.LowFrequency = 1
+				one.SumInterval = uint(float64(time.Now().Sub(resultsValues[1].CapturedAt).Hours())/24 + 1)
 			} else {
-				if one.ID != 0 {
-					database.POSTGRES.Model(&one).Updates(map[string]interface{}{"captured_at": time.Now(), "time_event_visit": len(resultsValues)})
+				one.NewComer = 1
+				one.SumInterval = 0
+			}
+
+			database.POSTGRES.Save(&one)
+		} else {
+			if one.ID != 0 {
+				database.POSTGRES.Model(&one).Updates()
+
+				if len(resultsValues) > 3 {
+					database.POSTGRES.Model(&one).Updates(map[string]interface{}{
+						"high_frequency": gorm.Expr("high_frequency + ?", 1),
+					})
+					one.SumInterval = uint(float64(time.Now().Sub(resultsValues[0].CapturedAt).Hours())/24 + 1)
+
+				} else if len(resultsValues) < 3 && len(resultsValues) != 0 {
+					database.POSTGRES.Model(&one).Updates(map[string]interface{}{
+						"low_frequency": gorm.Expr("low_frequency + ?", 1),
+					})
+					one.SumInterval = uint(float64(time.Now().Sub(resultsValues[1].CapturedAt).Hours())/24 + 1)
+
+				} else {
+					database.POSTGRES.Model(&one).Updates(map[string]interface{}{
+						"new_comer": gorm.Expr("new_comer + ?", 1),
+					})
 				}
+
 			}
 		}
-	}(left, right)
+
+	}
 }
