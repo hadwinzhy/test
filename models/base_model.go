@@ -65,5 +65,9 @@ type GenderGroup struct {
 func GetModels() []interface{} {
 	return []interface{}{
 		&FrequentCustomerCount{},
+		&FrequentCustomerPeopleBitMap{},
+		&FrequentCustomerGroup{},
+		&FrequentCustomerReport{},
+		&FrequentCustomerRule{},
 	}
 }
