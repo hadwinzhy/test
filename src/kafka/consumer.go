@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"siren/configs"
+	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/titan"
 	"time"
@@ -19,7 +20,7 @@ import (
 	cluster "github.com/bsm/sarama-cluster"
 )
 
-var headCountConsumerParams struct {
+var CountFrequentConsumerParams struct {
 	brokers []string
 	groupID string
 	topics  []string
@@ -32,17 +33,17 @@ func consumerInit() {
 	groupName := viper.GetString(configs.ENV + ".kafka.group")
 	topic := viper.Get(configs.ENV + ".kafka.topic")
 	log.Println(fmt.Sprintf("env: %s,host:%s, port: %s, groupID: %s, topic: %s", configs.ENV, host, port, groupName, topic))
-	headCountConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
-	headCountConsumerParams.groupID = groupName
-	headCountConsumerParams.topics = []string{topic.(string)}
+	CountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	CountFrequentConsumerParams.groupID = groupName
+	CountFrequentConsumerParams.topics = []string{topic.(string)}
 }
 
-func HeadCountConsumer() {
+func CountFrequentConsumer() {
 	consumerInit()
 	StartForConsumer(
-		headCountConsumerParams.brokers,
-		headCountConsumerParams.groupID,
-		headCountConsumerParams.topics,
+		CountFrequentConsumerParams.brokers,
+		CountFrequentConsumerParams.groupID,
+		CountFrequentConsumerParams.topics,
 	)
 }
 
@@ -157,6 +158,21 @@ func personIDHandler(c chan string) {
 			var resultsValues results
 			if dbError := database.POSTGRES.Raw(sql).Scan(&resultsValues).Error; dbError != nil {
 				return
+			}
+			var one models.FrequentCustomerCount
+			if dbError := database.POSTGRES.Where("person_uuid = ?", personID).First(&one).Error; dbError != nil {
+				day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
+				one = models.FrequentCustomerCount{
+					PersonUUID:     personID,
+					TimeEventVisit: len(resultsValues),
+					Day:            day,
+					CapturedAt:     time.Now(),
+				}
+				database.POSTGRES.Save(&one)
+			} else {
+				if one.ID != 0 {
+					database.POSTGRES.Model(&one).Updates(map[string]interface{}{"captured_at": time.Now(), "time_event_visit": len(resultsValues)})
+				}
 			}
 		}
 	}(left, right)
