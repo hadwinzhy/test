@@ -17,7 +17,7 @@ dev:
     host: "47.93.81.180"
     port: "9092"
     group: "Group_Dev"
-    topic: "head_count_dev"
+    topic: "frequent_customer_dev"
 
 test:
   db:
@@ -35,7 +35,7 @@ test:
     host: "47.93.81.180"
     port: "9092"
     group: "Group_Test"
-    topic: "head_count_test"
+    topic: "frequent_customer_test"
 
 production:
   db:
@@ -53,4 +53,4 @@ production:
     host: "47.93.81.180"
     port: "9092"
     group: "Group_Production"
-    topic: "head_count_production"
+    topic: "frequent_customer_production"
