@@ -26,6 +26,7 @@ var headCountConsumerParams struct {
 }
 
 func consumerInit() {
+	// todo: fix use config.fetchValue
 	host := viper.Get(configs.ENV + ".kafka.host")
 	port := viper.Get(configs.ENV + ".kafka.port")
 	groupName := viper.GetString(configs.ENV + ".kafka.group")
