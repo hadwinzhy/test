@@ -66,6 +66,7 @@ func GetModels() []interface{} {
 	return []interface{}{
 		&FrequentCustomerCount{},
 		&FrequentCustomerPeopleBitMap{},
+		&FrequentCustomerPeople{},
 		&FrequentCustomerGroup{},
 		&FrequentCustomerReport{},
 		&FrequentCustomerRule{},
