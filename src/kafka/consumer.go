@@ -13,6 +13,9 @@ import (
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/titan"
+
+	"siren/src/workers"
+
 	"siren/utils"
 	"strings"
 	"time"
@@ -20,11 +23,15 @@ import (
 	"github.com/bsm/sarama-cluster"
 )
 
-var CountFrequentConsumerParams struct {
+type CountFrequentConsumerParamsType struct {
 	brokers []string
 	groupID string
 	topics  []string
+	handler func([]byte)
 }
+
+var MallCountFrequentConsumerParams CountFrequentConsumerParamsType
+var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 
 var titanParams struct {
 	identificationURL string
@@ -42,9 +49,14 @@ func consumerInit() {
 	groupName := configs.FetchFieldValue("KAFKAGROUP")
 	topic := configs.FetchFieldValue("KAFKATOPIC")
 	log.Println(fmt.Sprintf("env: %s,host:%s, port: %s, groupID: %s, topic: %s", configs.ENV, host, port, groupName, topic))
-	CountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
-	CountFrequentConsumerParams.groupID = groupName
-	CountFrequentConsumerParams.topics = []string{topic}
+	MallCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	MallCountFrequentConsumerParams.groupID = groupName
+	MallCountFrequentConsumerParams.topics = []string{topic}
+	MallCountFrequentConsumerParams.handler = mallInfoHandler
+	StoreCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	StoreCountFrequentConsumerParams.groupID = groupName
+	StoreCountFrequentConsumerParams.topics = []string{"store_frequent_customer_" + configs.ENV}
+	StoreCountFrequentConsumerParams.handler = storeInfoHandler
 
 	// todo: titan faces/identification
 	titanParams.identificationURL = fmt.Sprintf("http://" + configs.FetchFieldValue("TitanHOST") + "/faces/identification")
@@ -56,18 +68,15 @@ func consumerInit() {
 
 func CountFrequentConsumer() {
 	consumerInit()
-	StartForConsumer(
-		CountFrequentConsumerParams.brokers,
-		CountFrequentConsumerParams.groupID,
-		CountFrequentConsumerParams.topics,
-	)
+	MallCountFrequentConsumerParams.StartConsumer()
+	StoreCountFrequentConsumerParams.StartConsumer()
 }
 
-func StartForConsumer(brokers []string, groupID string, topics []string) {
+func (params *CountFrequentConsumerParamsType) StartConsumer() {
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Group.Return.Notifications = true
-	consumer, err := cluster.NewConsumer(brokers, groupID, topics, config)
+	consumer, err := cluster.NewConsumer(params.brokers, params.groupID, params.topics, config)
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +103,7 @@ func StartForConsumer(brokers []string, groupID string, topics []string) {
 		case msg, ok := <-consumer.Messages():
 			if ok {
 				fmt.Fprintf(os.Stdout, "%s/%d/%d\t%s\t%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
-				infoHandler(msg.Value)
+				params.handler(msg.Value)
 				consumer.MarkOffset(msg, "") // mark message as processed
 			}
 		case <-signals:
@@ -113,7 +122,7 @@ type InfoForKafkaProducer struct {
 	PersonID  string `json:"person_id"`
 }
 
-func infoHandler(values []byte) {
+func mallInfoHandler(values []byte) {
 	// step one: titan
 	// step two: database event by person_id
 	// step three : count and save into database
@@ -206,9 +215,9 @@ func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProdu
 			onePerson = models.FrequentCustomerPeople{
 				PersonID:                info.PersonID,
 				FrequentCustomerGroupID: group.ID,
-				Date:                    day,
-				Interval:                uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
-				Frequency:               uint(len(resultsValues)),
+				Date:      day,
+				Interval:  uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
+				Frequency: uint(len(resultsValues)),
 			}
 			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
 				return false
@@ -216,4 +225,23 @@ func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProdu
 		}
 	}
 	return true
+}
+
+type StoreInfo struct {
+	CompanyID uint   `json:"company_id"`
+	ShopID    uint   `json:"shop_id"`
+	PersonID  string `json:"person_id"`
+	CaptureAt int64  `json:"capture_at"`
+}
+
+func storeInfoHandler(values []byte) {
+
+	var info StoreInfo
+	if err := json.Unmarshal(values, &info); err != nil {
+		log.Println(err)
+		return
+	}
+
+	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
+
 }
