@@ -2,6 +2,7 @@ package models
 
 import (
 	"reflect"
+	"siren/pkg/utils"
 	"time"
 )
 
@@ -119,3 +120,47 @@ func (table *FrequentCustomerHighTimeTable) AddCount(captureAt time.Time) {
 // 	}
 // 	return result, len(result)
 // }
+type FrequentCustomerReports []FrequentCustomerReport
+
+func (reports FrequentCustomerReports) InsertMissing(period string, fromTime time.Time, toTime time.Time) ([]FrequentCustomerReport, error) {
+	duration := utils.GetDurationByPeriod(period)
+	var total int
+	if period == "month" {
+		total = (toTime.Year()-fromTime.Year())*12 + (int(toTime.Month()) - int(fromTime.Month())) + 1
+	} else {
+		total = utils.GetSubByPeriod(period, fromTime, toTime, duration)
+	}
+	if total <= 0 {
+		return []FrequentCustomerReport{}, nil
+	}
+	result := make([]FrequentCustomerReport, total, total+1)
+
+	newTime := fromTime // init time
+	for i := range result {
+		result[i].Date = utils.CurrentTime(newTime, period)
+		for _, report := range reports {
+			left := report.Date.UTC().Unix()
+			right := utils.CurrentTime(newTime, period).Unix()
+			if left == right {
+				result[i] = report
+				break
+			}
+			if period == "year" {
+				result[i] = report
+				break
+			}
+		}
+		if period == "month" {
+			month := int(newTime.Month())
+			day := newTime.Day()
+			nextYear := newTime.Year()
+			if month == 12 {
+				nextYear++
+			}
+			newTime = time.Date(nextYear, time.Month(month%12+1), day, 0, 0, 0, 0, time.Local)
+		} else {
+			newTime = newTime.Add(duration)
+		}
+	}
+	return result, nil
+}
