@@ -3,6 +3,7 @@ package routers
 import (
 	"siren/pkg/logger"
 	"siren/pkg/middleware"
+	"siren/src/distributions"
 
 	raven "github.com/getsentry/raven-go"
 	"github.com/gin-contrib/sentry"
@@ -22,4 +23,6 @@ func InitRouters(r *gin.Engine) {
 
 	router500Handler(r)
 
+	v1 := r.Group("/v1/api/")
+	distributions.Register(v1)
 }
