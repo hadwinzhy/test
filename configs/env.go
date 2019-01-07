@@ -25,6 +25,10 @@ func launchCollection() map[string]string {
 		"PGPASSWORD":       "db.password",
 		"PGPORT":           "db.port",
 		"PGDBNAME":         "db.dbname",
+		"KAFKAHOST":        "kafka.host",
+		"KAFKAPORT":        "kafka.port",
+		"KAFKAGROUP":       "kafka.group",
+		"KAFKATOPIC":       "kafka.topic",
 	}
 	return collectionEnv
 }

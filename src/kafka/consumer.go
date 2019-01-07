@@ -13,12 +13,14 @@ import (
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/titan"
+
 	"siren/src/workers"
+
+	"siren/utils"
+	"strings"
 	"time"
 
-	"github.com/spf13/viper"
-
-	cluster "github.com/bsm/sarama-cluster"
+	"github.com/bsm/sarama-cluster"
 )
 
 type CountFrequentConsumerParamsType struct {
@@ -31,20 +33,37 @@ type CountFrequentConsumerParamsType struct {
 var MallCountFrequentConsumerParams CountFrequentConsumerParamsType
 var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 
+var titanParams struct {
+	identificationURL string
+}
+
+var ruleNumber struct {
+	high int
+	low  int
+}
+
 func consumerInit() {
-	// todo: fix use config.fetchValue
-	host := viper.Get(configs.ENV + ".kafka.host")
-	port := viper.Get(configs.ENV + ".kafka.port")
-	groupName := viper.GetString(configs.ENV + ".kafka.group")
-	topic := viper.Get(configs.ENV + ".kafka.topic")
+	// todo: fixed use config.fetchValue
+	host := configs.FetchFieldValue("KAFKAHOST")
+	port := configs.FetchFieldValue("KAFKAPORT")
+	groupName := configs.FetchFieldValue("KAFKAGROUP")
+	topic := configs.FetchFieldValue("KAFKATOPIC")
 	log.Println(fmt.Sprintf("env: %s,host:%s, port: %s, groupID: %s, topic: %s", configs.ENV, host, port, groupName, topic))
 	MallCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
 	MallCountFrequentConsumerParams.groupID = groupName
-	MallCountFrequentConsumerParams.topics = []string{topic.(string)}
+	MallCountFrequentConsumerParams.topics = []string{topic}
 	MallCountFrequentConsumerParams.handler = mallInfoHandler
 	StoreCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
 	StoreCountFrequentConsumerParams.groupID = groupName
 	StoreCountFrequentConsumerParams.topics = []string{"store_frequent_customer_" + configs.ENV}
+	StoreCountFrequentConsumerParams.handler = storeInfoHandler
+
+	// todo: titan faces/identification
+	titanParams.identificationURL = fmt.Sprintf("http://" + configs.FetchFieldValue("TitanHOST") + "/faces/identification")
+
+	// todo: rule number
+	ruleNumber.high = 3
+	ruleNumber.low = 2
 }
 
 func CountFrequentConsumer() {
@@ -93,11 +112,14 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 	}
 }
 
-type MallInfo struct {
+type InfoForKafkaProducer struct {
+	CompanyID uint   `json:"company_id"`
+	ShopID    uint   `json:"shop_id"`
 	ApiID     string `json:"api_id"`
 	ApiSecret string `json:"api_secret"`
 	FaceID    string `json:"face_id"`
 	GroupID   string `json:"group_id"`
+	PersonID  string `json:"person_id"`
 }
 
 func mallInfoHandler(values []byte) {
@@ -110,12 +132,34 @@ func mallInfoHandler(values []byte) {
 		log.Println(err)
 		return
 	}
-	fetchDataByTitan("", info.(MallInfo))
+
+	var group *models.FrequentCustomerGroup
+	var ok bool
+	if ok, group = saveGroupInfo(info.(InfoForKafkaProducer)); !ok {
+		return
+	}
+	fetchDataByTitan(group, info.(InfoForKafkaProducer))
 
 }
 
-func fetchDataByTitan(link string, info MallInfo) {
-	response, err := http.PostForm(link, url.Values{
+// save group
+func saveGroupInfo(info InfoForKafkaProducer) (bool, *models.FrequentCustomerGroup) {
+	var oneGroup models.FrequentCustomerGroup
+	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
+		oneGroup = models.FrequentCustomerGroup{
+			CompanyID: info.CompanyID,
+			ShopID:    info.ShopID,
+			GroupUUID: utils.GenerateUUID(20),
+		}
+		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
+			return false, nil
+		}
+	}
+	return true, &oneGroup
+}
+
+func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
+	response, err := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
 		"face_id":    {info.FaceID},
@@ -124,64 +168,63 @@ func fetchDataByTitan(link string, info MallInfo) {
 	})
 
 	if err != nil {
-		return
+		return false
 	}
 	defer response.Body.Close()
 
 	var values interface{}
 	responseByte, _ := ioutil.ReadAll(response.Body)
 	if err := json.Unmarshal(responseByte, values); err != nil {
-		return
+		return false
 	}
-	var c chan string
-	worker(c, values.(titan.CandidateData))
-	personIDHandler(c)
-
-}
-
-func worker(c chan string, values titan.CandidateData) {
-	for _, data := range values.Candidates {
-		c <- data.PersonID
+	var personIDs []string
+	for _, value := range values.(titan.CandidateData).Candidates {
+		personIDs = append(personIDs, value.PersonID)
 	}
+	if ok := personIDHandler(group, info, personIDs); !ok {
+		return false
+	}
+	return true
+
 }
 
 type result struct {
-	PersonID   string    `json:"person_id"`
-	CapturedAt time.Time `json:"captured_at"`
+	PersonID string    `json:"person_id"`
+	Day      time.Time `json:"day"`
 }
 
 type results []result
 
-func personIDHandler(c chan string) {
+func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProducer, personIDs []string) bool {
+	personIDString := strings.Join(personIDs, ",")
 	now := time.Now()
 	right := now.Format("2006-01-02 15:04:05")
 	left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
-	go func(left string, right string) {
-		for {
-			personID := <-c
-			sql := fmt.Sprintf(`SELECT person_id, captured_at FROM events WHERE person_id = %s AND captured_at BETWEEN %s AND %s`,
-				personID, left, right)
-			var resultsValues results
-			if dbError := database.POSTGRES.Raw(sql).Scan(&resultsValues).Error; dbError != nil {
-				return
+	sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN %s AND %s ORDER BY capture_at desc`,
+		personIDString, left, right)
+
+	var resultsValues results
+
+	database.POSTGRES.Raw(sql).Scan(&resultsValues)
+
+	//personID
+	{
+		var onePerson models.FrequentCustomerPeople
+		day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
+		if dbError := database.POSTGRES.Where("person_id = ? AND date = ?", info.PersonID, day).First(&onePerson).Error; dbError != nil {
+			onePerson = models.FrequentCustomerPeople{
+				PersonID:                info.PersonID,
+				FrequentCustomerGroupID: group.ID,
+				Date:      day,
+				Interval:  uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
+				Frequency: uint(len(resultsValues)),
 			}
-			var one models.FrequentCustomerCount
-			if dbError := database.POSTGRES.Where("person_uuid = ?", personID).First(&one).Error; dbError != nil {
-				day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
-				one = models.FrequentCustomerCount{
-					PersonUUID:     personID,
-					TimeEventVisit: len(resultsValues),
-					Day:            day,
-					CapturedAt:     time.Now(),
-				}
-				database.POSTGRES.Save(&one)
-			} else {
-				if one.ID != 0 {
-					database.POSTGRES.Model(&one).Updates(map[string]interface{}{"captured_at": time.Now(), "time_event_visit": len(resultsValues)})
-				}
+			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
+				return false
 			}
 		}
-	}(left, right)
+	}
+	return true
 }
 
 type StoreInfo struct {
