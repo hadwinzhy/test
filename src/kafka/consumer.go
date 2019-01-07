@@ -13,6 +13,7 @@ import (
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/titan"
+	"siren/src/workers"
 	"time"
 
 	"github.com/spf13/viper"
@@ -20,11 +21,15 @@ import (
 	cluster "github.com/bsm/sarama-cluster"
 )
 
-var CountFrequentConsumerParams struct {
+type CountFrequentConsumerParamsType struct {
 	brokers []string
 	groupID string
 	topics  []string
+	handler func([]byte)
 }
+
+var MallCountFrequentConsumerParams CountFrequentConsumerParamsType
+var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 
 func consumerInit() {
 	// todo: fix use config.fetchValue
@@ -33,25 +38,26 @@ func consumerInit() {
 	groupName := viper.GetString(configs.ENV + ".kafka.group")
 	topic := viper.Get(configs.ENV + ".kafka.topic")
 	log.Println(fmt.Sprintf("env: %s,host:%s, port: %s, groupID: %s, topic: %s", configs.ENV, host, port, groupName, topic))
-	CountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
-	CountFrequentConsumerParams.groupID = groupName
-	CountFrequentConsumerParams.topics = []string{topic.(string)}
+	MallCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	MallCountFrequentConsumerParams.groupID = groupName
+	MallCountFrequentConsumerParams.topics = []string{topic.(string)}
+	MallCountFrequentConsumerParams.handler = mallInfoHandler
+	StoreCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
+	StoreCountFrequentConsumerParams.groupID = groupName
+	StoreCountFrequentConsumerParams.topics = []string{"store_frequent_customer_" + configs.ENV}
 }
 
 func CountFrequentConsumer() {
 	consumerInit()
-	StartForConsumer(
-		CountFrequentConsumerParams.brokers,
-		CountFrequentConsumerParams.groupID,
-		CountFrequentConsumerParams.topics,
-	)
+	MallCountFrequentConsumerParams.StartConsumer()
+	StoreCountFrequentConsumerParams.StartConsumer()
 }
 
-func StartForConsumer(brokers []string, groupID string, topics []string) {
+func (params *CountFrequentConsumerParamsType) StartConsumer() {
 	config := cluster.NewConfig()
 	config.Consumer.Return.Errors = true
 	config.Group.Return.Notifications = true
-	consumer, err := cluster.NewConsumer(brokers, groupID, topics, config)
+	consumer, err := cluster.NewConsumer(params.brokers, params.groupID, params.topics, config)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +84,7 @@ func StartForConsumer(brokers []string, groupID string, topics []string) {
 		case msg, ok := <-consumer.Messages():
 			if ok {
 				fmt.Fprintf(os.Stdout, "%s/%d/%d\t%s\t%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
-				infoHandler(msg.Value)
+				params.handler(msg.Value)
 				consumer.MarkOffset(msg, "") // mark message as processed
 			}
 		case <-signals:
@@ -87,14 +93,14 @@ func StartForConsumer(brokers []string, groupID string, topics []string) {
 	}
 }
 
-type Info struct {
+type MallInfo struct {
 	ApiID     string `json:"api_id"`
 	ApiSecret string `json:"api_secret"`
 	FaceID    string `json:"face_id"`
 	GroupID   string `json:"group_id"`
 }
 
-func infoHandler(values []byte) {
+func mallInfoHandler(values []byte) {
 	// step one: titan
 	// step two: database event by person_id
 	// step three : count and save into database
@@ -104,11 +110,11 @@ func infoHandler(values []byte) {
 		log.Println(err)
 		return
 	}
-	fetchDataByTitan("", info.(Info))
+	fetchDataByTitan("", info.(MallInfo))
 
 }
 
-func fetchDataByTitan(link string, info Info) {
+func fetchDataByTitan(link string, info MallInfo) {
 	response, err := http.PostForm(link, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
@@ -176,4 +182,23 @@ func personIDHandler(c chan string) {
 			}
 		}
 	}(left, right)
+}
+
+type StoreInfo struct {
+	CompanyID uint   `json:"company_id"`
+	ShopID    uint   `json:"shop_id"`
+	PersonID  string `json:"person_id"`
+	CaptureAt int64  `json:"capture_at"`
+}
+
+func storeInfoHandler(values []byte) {
+
+	var info StoreInfo
+	if err := json.Unmarshal(values, &info); err != nil {
+		log.Println(err)
+		return
+	}
+
+	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
+
 }
