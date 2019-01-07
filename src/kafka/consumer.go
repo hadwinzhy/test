@@ -36,7 +36,7 @@ var ruleNumber struct {
 }
 
 func consumerInit() {
-	// todo: fix use config.fetchValue
+	// todo: fixed use config.fetchValue
 	host := configs.FetchFieldValue("KAFKAHOST")
 	port := configs.FetchFieldValue("KAFKAPORT")
 	groupName := configs.FetchFieldValue("KAFKAGROUP")
@@ -103,7 +103,7 @@ func StartForConsumer(brokers []string, groupID string, topics []string) {
 	}
 }
 
-type Info struct {
+type InfoForKafkaProducer struct {
 	CompanyID uint   `json:"company_id"`
 	ShopID    uint   `json:"shop_id"`
 	ApiID     string `json:"api_id"`
@@ -126,15 +126,15 @@ func infoHandler(values []byte) {
 
 	var group *models.FrequentCustomerGroup
 	var ok bool
-	if ok, group = saveGroupInfo(info.(Info)); !ok {
+	if ok, group = saveGroupInfo(info.(InfoForKafkaProducer)); !ok {
 		return
 	}
-	fetchDataByTitan(group, info.(Info))
+	fetchDataByTitan(group, info.(InfoForKafkaProducer))
 
 }
 
 // save group
-func saveGroupInfo(info Info) (bool, *models.FrequentCustomerGroup) {
+func saveGroupInfo(info InfoForKafkaProducer) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
 	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
@@ -149,7 +149,7 @@ func saveGroupInfo(info Info) (bool, *models.FrequentCustomerGroup) {
 	return true, &oneGroup
 }
 
-func fetchDataByTitan(group *models.FrequentCustomerGroup, info Info) {
+func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
 	response, err := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
@@ -159,20 +159,23 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info Info) {
 	})
 
 	if err != nil {
-		return
+		return false
 	}
 	defer response.Body.Close()
 
 	var values interface{}
 	responseByte, _ := ioutil.ReadAll(response.Body)
 	if err := json.Unmarshal(responseByte, values); err != nil {
-		return
+		return false
 	}
 	var personIDs []string
 	for _, value := range values.(titan.CandidateData).Candidates {
 		personIDs = append(personIDs, value.PersonID)
 	}
-	personIDHandler(group, info, personIDs)
+	if ok := personIDHandler(group, info, personIDs); !ok {
+		return false
+	}
+	return true
 
 }
 
@@ -183,7 +186,7 @@ type result struct {
 
 type results []result
 
-func personIDHandler(group *models.FrequentCustomerGroup, info Info, personIDs []string) {
+func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProducer, personIDs []string) bool {
 	personIDString := strings.Join(personIDs, ",")
 	now := time.Now()
 	right := now.Format("2006-01-02 15:04:05")
@@ -207,7 +210,10 @@ func personIDHandler(group *models.FrequentCustomerGroup, info Info, personIDs [
 				Interval:                uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
 				Frequency:               uint(len(resultsValues)),
 			}
-			database.POSTGRES.Save(&onePerson)
+			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
+				return false
+			}
 		}
 	}
+	return true
 }
