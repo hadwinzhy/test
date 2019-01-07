@@ -68,7 +68,7 @@ func consumerInit() {
 
 func CountFrequentConsumer() {
 	consumerInit()
-	MallCountFrequentConsumerParams.StartConsumer()
+	go MallCountFrequentConsumerParams.StartConsumer()
 	StoreCountFrequentConsumerParams.StartConsumer()
 }
 
