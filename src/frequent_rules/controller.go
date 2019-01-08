@@ -69,28 +69,17 @@ func GetAllFrequentRulesHandler(context *gin.Context) {
 
 }
 
-// getOneFrequentRule by id
-func GetOneFrequentRuleHandler(context *gin.Context) {
-	var params string
-	params = context.Query("id")
-	var result models.FrequentCustomerRule
-	if dbError := database.POSTGRES.Where("id = ?", params).First(&result).Error; dbError != nil {
-		MakeResponse(context, http.StatusBadRequest, errors.New("records not found").Error())
-		return
-	}
-	MakeResponse(context, http.StatusOK, result.BasicSerializer())
-
-}
-
-// deleteOneFrequentRule by id
+// deleteOneFrequentRule by company_id
 func DeleteOneFrequentRuleHandler(context *gin.Context) {
 	var params string
-	params = context.Query("id")
+	params = context.Param("company_id")
+	log.Println(params)
 	var result models.FrequentCustomerRule
-	if dbError := database.POSTGRES.Where("id = ?", params).First(&result).Error; dbError != nil {
+	if dbError := database.POSTGRES.Where("company_id = ?", params).First(&result).Error; dbError != nil {
 		MakeResponse(context, http.StatusBadRequest, errors.New("records not found").Error())
 		return
 	}
+	database.POSTGRES.Delete(&result)
 	MakeResponse(context, http.StatusOK, result.BasicSerializer())
 
 }
