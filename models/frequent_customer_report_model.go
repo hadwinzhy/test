@@ -32,6 +32,8 @@ type FrequentCustomerHighTimeTable struct {
 	PhaseEight              uint      `gorm:"type:integer"`
 }
 
+type FrequentCustomerHighTimeTables []FrequentCustomerHighTimeTable
+
 var hourPhaseMap = map[int]string{
 	8:  "PhaseOne",
 	9:  "PhaseOne",
