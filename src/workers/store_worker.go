@@ -98,7 +98,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	}
 
 	// 1.1 有的话，这就是一个来过的人，记在bitmap中更新那一行
-	bitMap, err := person.UpdateBitMap(today)
+	bitMap, err := person.UpdateBitMap(personID, today)
 	if err != nil {
 		return
 	}

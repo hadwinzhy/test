@@ -17,7 +17,7 @@ const (
 type FrequentCustomerPeopleBitMap struct {
 	BaseModel
 	FrequentCustomerPeopleID uint   `gorm:"index"`
-	PersonID                 uint   `gorm:"index"`
+	PersonID                 string `gorm:"index"`
 	BitMap                   string `gorm:"type:BIT(32)"`
 	FrequentCustomerPeople   FrequentCustomerPeople
 }
@@ -34,15 +34,17 @@ type FrequentCustomerPeople struct {
 }
 
 // UpdateBitMap 更新对应的person的当天的bitmap并且返回出来
-func (person *FrequentCustomerPeople) UpdateBitMap(today time.Time) (FrequentCustomerPeopleBitMap, error) {
+// personID是算法层面的personID
+func (person *FrequentCustomerPeople) UpdateBitMap(personID string, today time.Time) (FrequentCustomerPeopleBitMap, error) {
 	var bitMap FrequentCustomerPeopleBitMap
 	database.POSTGRES.Preload("FrequentCustomerPeople").
-		Where("person_id = ?").
+		Where("person_id = ?", personID).
 		Order("id desc").
 		First(&bitMap)
 
 	if bitMap.ID == 0 || len(bitMap.BitMap) != 32 { // 以前从来没来过
 		bitMap.FrequentCustomerPeopleID = person.ID
+		bitMap.PersonID = personID
 		bitMap.BitMap = "00000000000000000000000000000001"
 		err := database.POSTGRES.Save(&bitMap).Error
 
@@ -51,6 +53,7 @@ func (person *FrequentCustomerPeople) UpdateBitMap(today time.Time) (FrequentCus
 		// 来过的话就重新计算一下bitMap保存下里
 		var newBitMap FrequentCustomerPeopleBitMap
 		newBitMap.FrequentCustomerPeopleID = person.ID
+		newBitMap.PersonID = personID
 		days := (today.Add(time.Second).Sub(bitMap.FrequentCustomerPeople.Date)) / (86400 * time.Second) // +1s保证除尽
 
 		if days > 30 || days <= 0 {
