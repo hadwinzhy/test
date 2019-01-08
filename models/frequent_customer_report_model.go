@@ -139,7 +139,7 @@ func (reports FrequentCustomerReports) InsertMissing(period string, fromTime tim
 	for i := range result {
 		result[i].Date = utils.CurrentTime(newTime, period)
 		for _, report := range reports {
-			left := report.Date.UTC().Unix()
+			left := utils.CurrentDate(report.Date).UTC().Unix()
 			right := utils.CurrentTime(newTime, period).Unix()
 			if left == right {
 				result[i] = report

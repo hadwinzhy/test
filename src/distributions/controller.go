@@ -15,7 +15,7 @@ func proportionCounter(divider uint, dividedBy uint) string {
 		return "0.00%"
 	} else {
 		percentage := float64(divider) / float64(dividedBy)
-		return fmt.Sprintf("%.2f%%", percentage)
+		return fmt.Sprintf("%.2f%%", percentage*100)
 	}
 }
 
@@ -61,7 +61,7 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 		database.POSTGRES.Model(&dataItems).
 			Select("date, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
 			Where("date >= ?", fromTime).
-			Where("data < ?", toTime).
+			Where("date <= ?", toTime).
 			Group("date").
 			Find(&dataItems)
 	}
