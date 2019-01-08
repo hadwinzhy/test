@@ -90,6 +90,7 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 	if lastIndex != -1 {
 		person.Interval = uint(31 - lastIndex)
 	}
+	database.POSTGRES.Save(person)
 }
 
 func (person *FrequentCustomerPeople) GetType() string {
