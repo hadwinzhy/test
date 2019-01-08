@@ -9,16 +9,15 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"pluto/pkg/titan"
 	"siren/configs"
 	"siren/models"
 	"siren/pkg/database"
-	"siren/pkg/titan"
-
-	"siren/src/workers"
-
-	"siren/utils"
 	"strings"
 	"time"
+	"venus/utils"
+
+	"siren/src/workers"
 
 	"github.com/bsm/sarama-cluster"
 )
@@ -53,6 +52,7 @@ func consumerInit() {
 	MallCountFrequentConsumerParams.groupID = groupName
 	MallCountFrequentConsumerParams.topics = []string{topic}
 	MallCountFrequentConsumerParams.handler = mallInfoHandler
+
 	StoreCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
 	StoreCountFrequentConsumerParams.groupID = groupName
 	StoreCountFrequentConsumerParams.topics = []string{"store_frequent_customer_" + configs.ENV}
@@ -123,32 +123,27 @@ type InfoForKafkaProducer struct {
 }
 
 func mallInfoHandler(values []byte) {
-	// step one: titan
-	// step two: database event by person_id
-	// step three : count and save into database
-
-	var info interface{}
-	if err := json.Unmarshal(values, info); err != nil {
+	var info InfoForKafkaProducer
+	if err := json.Unmarshal(values, &info); err != nil {
 		log.Println(err)
 		return
 	}
 
 	var group *models.FrequentCustomerGroup
 	var ok bool
-	if ok, group = saveGroupInfo(info.(InfoForKafkaProducer)); !ok {
+	if ok, group = saveGroupInfo(info.CompanyID, info.ShopID); !ok {
 		return
 	}
-	fetchDataByTitan(group, info.(InfoForKafkaProducer))
+	fetchDataByTitan(group, info)
 
 }
 
-// save group
-func saveGroupInfo(info InfoForKafkaProducer) (bool, *models.FrequentCustomerGroup) {
+func saveGroupInfo(companyID uint, shopID uint) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
-	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
+	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", companyID, shopID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
-			CompanyID: info.CompanyID,
-			ShopID:    info.ShopID,
+			CompanyID: companyID,
+			ShopID:    shopID,
 			GroupUUID: utils.GenerateUUID(20),
 		}
 		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
@@ -181,7 +176,7 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 	for _, value := range values.(titan.CandidateData).Candidates {
 		personIDs = append(personIDs, value.PersonID)
 	}
-	if ok := personIDHandler(group, info, personIDs); !ok {
+	if ok := personIDHandler(group.ID, info.PersonID, personIDs); !ok {
 		return false
 	}
 	return true
@@ -195,7 +190,7 @@ type result struct {
 
 type results []result
 
-func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProducer, personIDs []string) bool {
+func personIDHandler(groupID uint, personUUID string, personIDs []string) bool {
 	personIDString := strings.Join(personIDs, ",")
 	now := time.Now()
 	right := now.Format("2006-01-02 15:04:05")
@@ -211,19 +206,21 @@ func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProdu
 	{
 		var onePerson models.FrequentCustomerPeople
 		day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
-		if dbError := database.POSTGRES.Where("person_id = ? AND date = ?", info.PersonID, day).First(&onePerson).Error; dbError != nil {
+		if dbError := database.POSTGRES.Where("person_id = ? AND date = ?", personUUID, day).First(&onePerson).Error; dbError != nil {
 			onePerson = models.FrequentCustomerPeople{
-				PersonID:                info.PersonID,
-				FrequentCustomerGroupID: group.ID,
-				Date:      day,
-				Interval:  uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
-				Frequency: uint(len(resultsValues)),
+				PersonID:                personUUID,
+				FrequentCustomerGroupID: groupID,
+				Date:                    day,
+				Interval:                uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
+				Frequency:               uint(len(resultsValues)),
 			}
 			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
 				return false
 			}
 		}
+		workers.MallCountFrequentCustomerHandler(onePerson, groupID, day.Unix())
 	}
+
 	return true
 }
 

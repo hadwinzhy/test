@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/json"
+
 	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
@@ -9,8 +11,12 @@ type FrequentCustomerRule struct {
 	CompanyID     uint           `gorm:"index"`
 	LowFrequency  postgres.Jsonb `gorm:"jsonb"`
 	HighFrequency postgres.Jsonb `gorm:"jsonb"`
+	Limit         int            `gorm:"type:integer"`
 	readableRules ReadableFrequencyRule
 }
+
+type FrequentCustomerRules []FrequentCustomerRule
+
 type ReadableFrequencyRule struct {
 	LowFrequency  []rulePair
 	HighFrequency []rulePair
@@ -22,6 +28,8 @@ type rulePair struct {
 	To   uint   `json:"to"`
 	Type string `json:"type"`
 }
+
+type rulePairs []rulePair
 
 type FrequentCustomerRuleSerializer []rulePair
 
@@ -67,5 +75,38 @@ func (rule *FrequentCustomerRule) ReadableRule() ReadableFrequencyRule {
 		HighFrequency: hf,
 		Limit:         3,
 	}
-	// }
+}
+
+type FrequentCustomerRuleBasicSerializer struct {
+	ID            uint       `json:"id"`
+	CompanyID     uint       `json:"company_id"`
+	LowFrequency  []rulePair `json:"low_frequency"`
+	HighFrequency []rulePair `json:"high_frequency"`
+	Limit         int        `json:"limit"`
+}
+
+func (rule FrequentCustomerRule) BasicSerializer() FrequentCustomerRuleBasicSerializer {
+	return FrequentCustomerRuleBasicSerializer{
+		ID:            rule.ID,
+		CompanyID:     rule.CompanyID,
+		LowFrequency:  rule.GetLowFrequency(),
+		HighFrequency: rule.GetHighFrequency(),
+		Limit:         rule.Limit,
+	}
+}
+
+func (rule FrequentCustomerRule) GetLowFrequency() rulePairs {
+	var lowRulePairs rulePairs
+	if err := json.Unmarshal(rule.LowFrequency.RawMessage, &lowRulePairs); err != nil {
+		return nil
+	}
+	return lowRulePairs
+}
+
+func (rule FrequentCustomerRule) GetHighFrequency() rulePairs {
+	var highRulePairs rulePairs
+	if err := json.Unmarshal(rule.HighFrequency.RawMessage, &highRulePairs); err != nil {
+		return nil
+	}
+	return highRulePairs
 }
