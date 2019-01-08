@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"siren/models"
 	"siren/pkg/database"
+	"siren/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,23 +24,25 @@ func GetFrequentTableHandler(context *gin.Context) {
 		return
 	}
 
-	var table models.FrequentCustomerHighTimeTables
-	query := database.POSTGRES.Model(&table).Where("frequent_customer_group_id = ?", group.ID)
-
-	sql := `select id, sum(phase_one) as phase_one, sum(phase_two) as phase_two, sum(phase_three) as phase_three,
+	sql := `id, frequent_customer_group_id, sum(phase_one) as phase_one, sum(phase_two) as phase_two, sum(phase_three) as phase_three,
        sum(phase_four) as phase_four,sum(phase_five) as phase_five,sum(phase_six) as phase_six,sum(phase_seven) as phase_seven,
-       sum(phase_eight) as phase_eight
-       from frequent_customer_high_time_tables`
+       sum(phase_eight) as phase_eight`
 
-	var results models.FrequentCustomerHighTimeTables
+	var results []models.FrequentCustomerHighTimeTableSerializer
 	for _, day := range weekDate() {
-		query = query.Raw(sql).Where("date = ?", day)
+		day = utils.CurrentDate(day)
+		log.Println(day)
 		var data models.FrequentCustomerHighTimeTable
+		query := database.POSTGRES.Model(&data).Where("frequent_customer_group_id = ?", group.ID)
+		query = query.Select(sql).Where("date = ?", day).Group("id, frequent_customer_group_id")
 		if dbError := query.First(&data).Error; dbError != nil {
-			MakeResponse(context, http.StatusBadRequest, dbError.Error())
-			return
+			data = models.FrequentCustomerHighTimeTable{
+				Date: day,
+			}
 		}
-		results = append(results, data)
+		data.Date = day
+		log.Println(data)
+		results = append(results, data.BasicSerializer())
 	}
 	MakeResponse(context, http.StatusOK, results)
 

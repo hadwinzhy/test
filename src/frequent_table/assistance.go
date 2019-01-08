@@ -1,6 +1,7 @@
 package frequent_table
 
 import (
+	"siren/pkg/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,7 +12,7 @@ func MakeResponse(context *gin.Context, code int, values interface{}) {
 }
 
 func weekDate() []time.Time {
-	now := time.Now()
+	now := utils.CurrentDate(time.Now())
 	day, _ := time.Parse("2006-01-02", now.Format("2006-01-02"))
 	var week []time.Time
 	week = append(week, day)

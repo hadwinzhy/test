@@ -435,6 +435,14 @@
   revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
   version = "v2.2.2"
 
+[[projects]]
+  digest = "1:f7bdf353d968dff41aed8543a9f6ebbd4a547e44cafcfb675b216647739016cb"
+  name = "qiniupkg.com/x"
+  packages = ["log.v7"]
+  pruneopts = "UT"
+  revision = "946c4a16076d6d98aeb78619e2bd4012357f7228"
+  version = "v7.0.8"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -447,9 +455,11 @@
     "github.com/jinzhu/gorm",
     "github.com/jinzhu/gorm/dialects/postgres",
     "github.com/parnurzeal/gorequest",
+    "github.com/pkg/errors",
     "github.com/sirupsen/logrus",
     "github.com/spf13/cobra",
     "github.com/spf13/viper",
+    "qiniupkg.com/x/log.v7",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
