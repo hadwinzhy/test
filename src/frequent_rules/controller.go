@@ -1,11 +1,10 @@
 package frequent_rules
 
 import (
+	"log"
 	"net/http"
 	"siren/models"
 	"siren/pkg/database"
-
-	"qiniupkg.com/x/log.v7"
 
 	"github.com/pkg/errors"
 
