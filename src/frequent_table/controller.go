@@ -21,9 +21,16 @@ func GetFrequentTableHandler(context *gin.Context) {
 	log.Println(params)
 
 	var group models.FrequentCustomerGroup
-	if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&group).Error; dbError != nil {
-		MakeResponse(context, http.StatusBadRequest, dbError.Error())
-		return
+	if params.ShopID != 0 {
+		if dbError := database.POSTGRES.Where("company_id =? AND shop_id = ?", params.CompanyID, params.ShopID).First(&group).Error; dbError != nil {
+			MakeResponse(context, http.StatusBadRequest, dbError.Error())
+			return
+		}
+	} else {
+		if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&group).Error; dbError != nil {
+			MakeResponse(context, http.StatusBadRequest, dbError.Error())
+			return
+		}
 	}
 
 	sql := `id, frequent_customer_group_id, sum(phase_one) as phase_one, sum(phase_two) as phase_two, sum(phase_three) as phase_three,
