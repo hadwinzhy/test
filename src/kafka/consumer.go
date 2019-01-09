@@ -113,13 +113,14 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 }
 
 type InfoForKafkaProducer struct {
-	CompanyID uint   `json:"company_id"`
-	ShopID    uint   `json:"shop_id"`
-	ApiID     string `json:"api_id"`
-	ApiSecret string `json:"api_secret"`
-	FaceID    string `json:"face_id"`
-	GroupID   string `json:"group_id"`
-	PersonID  string `json:"person_id"`
+	CompanyID  uint   `json:"company_id"`
+	ShopID     uint   `json:"shop_id"`
+	ApiID      string `json:"api_id"`
+	ApiSecret  string `json:"api_secret"`
+	FaceID     string `json:"face_id"`
+	GroupID    string `json:"group_id"`
+	PersonID   string `json:"person_id"`
+	CapturedAt int64  `json:"captured_at"`
 }
 
 func mallInfoHandler(values []byte) {
@@ -140,10 +141,9 @@ func mallInfoHandler(values []byte) {
 
 func saveGroupInfo(companyID uint, shopID uint) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
-	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", companyID, shopID).First(&oneGroup).Error; dbError != nil {
+	if dbError := database.POSTGRES.Where("company_id = ?", companyID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
 			CompanyID: companyID,
-			ShopID:    shopID,
 			GroupUUID: utils.GenerateUUID(20),
 		}
 		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
@@ -176,7 +176,7 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 	for _, value := range values.(titan.CandidateData).Candidates {
 		personIDs = append(personIDs, value.PersonID)
 	}
-	if ok := personIDHandler(group.ID, info.PersonID, personIDs); !ok {
+	if ok := personIDHandler(group.ID, info.PersonID, personIDs, info.CapturedAt); !ok {
 		return false
 	}
 	return true
@@ -190,7 +190,7 @@ type result struct {
 
 type results []result
 
-func personIDHandler(groupID uint, personUUID string, personIDs []string) bool {
+func personIDHandler(groupID uint, personUUID string, personIDs []string, capturedAt int64) bool {
 	personIDString := strings.Join(personIDs, ",")
 	now := time.Now()
 	right := now.Format("2006-01-02 15:04:05")
@@ -205,20 +205,25 @@ func personIDHandler(groupID uint, personUUID string, personIDs []string) bool {
 	//personID
 	{
 		var onePerson models.FrequentCustomerPeople
-		day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
-		if dbError := database.POSTGRES.Where("person_id = ? AND date = ?", personUUID, day).First(&onePerson).Error; dbError != nil {
+		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
+		if dbError := database.POSTGRES.Where("person_id = ? AND hour = ?", personUUID, hour).First(&onePerson).Error; dbError != nil {
 			onePerson = models.FrequentCustomerPeople{
 				PersonID:                personUUID,
 				FrequentCustomerGroupID: groupID,
-				Date:                    day,
-				Interval:                uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
+				Date:                    utils.CurrentDate(time.Unix(capturedAt, 0)),
+				Hour:                    hour,
 				Frequency:               uint(len(resultsValues)),
+			}
+			if len(resultsValues) == 0 {
+				onePerson.Interval = 0 // 新客，间隔为 0
+			} else {
+				onePerson.Interval = uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1)
 			}
 			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
 				return false
 			}
 		}
-		workers.MallCountFrequentCustomerHandler(onePerson, groupID, day.Unix())
+		workers.MallCountFrequentCustomerHandler(onePerson, groupID, capturedAt)
 	}
 
 	return true
