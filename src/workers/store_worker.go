@@ -2,9 +2,12 @@ package workers
 
 import (
 	"errors"
+	"fmt"
 	"siren/models"
 	"siren/pkg/database"
+	"siren/pkg/logger"
 	"siren/pkg/utils"
+	"strconv"
 	"time"
 )
 
@@ -19,34 +22,91 @@ func fetchFrequentCustomerGroup(companyID uint, shopID uint) (models.FrequentCus
 	return group, err
 }
 
-func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID string, today time.Time) (models.FrequentCustomerPeople, error) {
+func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID string, today time.Time, hour time.Time) (models.FrequentCustomerPeople, error) {
 	var person models.FrequentCustomerPeople
 	// var comer comerBasicInfo
 
 	database.POSTGRES.Where("frequent_customer_group_id = ?", group.ID).
 		Where("person_id = ?", personID).
-		Where("date = ?", today).
+		Where("hour >= ?", today).
+		Where("hour < ?", today.AddDate(0, 0, 1)).
 		First(&person)
 
 	if person.ID == 0 { // 新建一个person
 		person.FrequentCustomerGroupID = group.ID
 		person.PersonID = personID
-		person.Date = today
+		person.Hour = hour
 		err := database.POSTGRES.Save(&person).Error
 		if err != nil {
 			return person, err
 		}
+	} else {
+		logger.Error("store_worker", "fetch_person", "already_exists personID = ", personID, " groupID = ", group.ID, " captureHour = ", hour)
+		return person, errors.New("今天已经来过，不能用作回头客")
 	}
 	return person, nil
 }
 
-func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID uint, today time.Time) error {
+func updateBitMap(frequentPersonID uint, personID string, today time.Time, hour time.Time) (models.FrequentCustomerPeopleBitMap, error) {
+	var bitMap models.FrequentCustomerPeopleBitMap
+	database.POSTGRES.Preload("FrequentCustomerPeople").
+		Where("person_id = ?", personID).
+		Order("id desc").
+		First(&bitMap)
+
+	if bitMap.ID == 0 || len(bitMap.BitMap) != 32 { // 以前从来没来过
+		bitMap.FrequentCustomerPeopleID = frequentPersonID
+		bitMap.PersonID = personID
+		bitMap.BitMap = "00000000000000000000000000000001"
+		err := database.POSTGRES.Save(&bitMap).Error
+
+		return bitMap, err
+	} else {
+		// 来过的话就重新计算一下bitMap保存下里
+		var newBitMap models.FrequentCustomerPeopleBitMap
+		newBitMap.FrequentCustomerPeopleID = frequentPersonID
+		newBitMap.PersonID = personID
+		lastBitMapDate := utils.CurrentDate(bitMap.FrequentCustomerPeople.Hour) // 存储的时候是0时区
+		fmt.Println(today, lastBitMapDate, today.Add(time.Second).Sub(lastBitMapDate))
+		days := (today.Add(time.Second).Sub(lastBitMapDate)) / (86400 * time.Second) // +1s保证除尽
+
+		if days > 30 || days <= 0 {
+			newBitMap.BitMap = "00000000000000000000000000000001"
+		} else {
+			bitMapNum, err := strconv.ParseInt(bitMap.BitMap, 2, 64)
+			fmt.Println("bitmap", bitMapNum)
+			if err != nil {
+				return newBitMap, err
+			}
+
+			bitMapNum = bitMapNum << uint(days)
+			fmt.Println("bitmap", bitMapNum)
+			bitMapNum += 4294967296
+			newBitMapStr := strconv.FormatInt(bitMapNum, 2)
+
+			fmt.Println("bitmap", newBitMapStr)
+
+			if len(newBitMapStr) < 32 { // 没到32，往前补0
+				return newBitMap, errors.New("bit error")
+			}
+			newBitMapStr = "00" + newBitMapStr[len(newBitMapStr)-30:len(newBitMapStr)-1] + "1" // 用不着32位，用30位，最后1位为1
+
+			newBitMap.BitMap = newBitMapStr
+		}
+
+		err := database.POSTGRES.Save(&newBitMap).Error
+		return newBitMap, err
+	}
+}
+
+func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID uint, today time.Time, hour time.Time) error {
 	var report models.FrequentCustomerReport
 	database.POSTGRES.FirstOrCreate(
 		&report,
 		models.FrequentCustomerReport{
 			FrequentCustomerGroupID: groupID,
 			Date:                    today,
+			Hour:                    hour,
 		},
 	)
 
@@ -90,15 +150,18 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 		return
 	}
 
-	today := utils.CurrentDate(time.Now())
+	captureTime := time.Unix(captureAt, 0)
+
+	today := utils.CurrentDate(captureTime)
+	thisHour := utils.CurrentTime(captureTime, "hour")
 	// 1. 首先看这组companyID shopID里有没有这个personID的bitmap，bitmap里记录了一个值，当天这人有没有来过
-	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today)
+	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, thisHour)
 	if err != nil {
 		return
 	}
 
 	// 1.1 有的话，这就是一个来过的人，记在bitmap中更新那一行
-	bitMap, err := person.UpdateBitMap(today)
+	bitMap, err := updateBitMap(person.ID, personID, today, thisHour)
 	if err != nil {
 		return
 	}
@@ -107,7 +170,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	person.UpdateValueWithBitMap(&bitMap)
 
 	// 2. report里的数据更新，记到当天的数据分布表中, 总人数，高频次数，低频次数，新客数，总到访间隔天数，总到访天数
-	err = updateFrequentCustomerReport(&person, fcGroup.ID, today)
+	err = updateFrequentCustomerReport(&person, fcGroup.ID, today, thisHour)
 	if err != nil {
 		return
 	}

@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"siren/pkg/database"
+	"siren/pkg/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ const (
 type FrequentCustomerPeopleBitMap struct {
 	BaseModel
 	FrequentCustomerPeopleID uint   `gorm:"index"`
-	PersonID                 uint   `gorm:"index"`
+	PersonID                 string `gorm:"index"`
 	BitMap                   string `gorm:"type:BIT(32)"`
 	FrequentCustomerPeople   FrequentCustomerPeople
 }
@@ -27,22 +28,26 @@ type FrequentCustomerPeople struct {
 	FrequentCustomerGroupID uint      `gorm:"index"`
 	PersonID                string    `gorm:"type:varchar(32)"`
 	Date                    time.Time `gorm:"type:date"`
+	Hour                    time.Time `gorm:"type:timestamp with time zone"`
 	Interval                uint      `gorm:"type:integer"`
 	Frequency               uint      `gorm:"type:integer"`
+	IsFrequentCustomer      bool      `gorm:"type:bool"`
 
 	customerType string // 隐藏字段，类型
 }
 
 // UpdateBitMap 更新对应的person的当天的bitmap并且返回出来
-func (person *FrequentCustomerPeople) UpdateBitMap(today time.Time) (FrequentCustomerPeopleBitMap, error) {
+// personID是算法层面的personID
+func (person *FrequentCustomerPeople) UpdateBitMap(personID string, today time.Time) (FrequentCustomerPeopleBitMap, error) {
 	var bitMap FrequentCustomerPeopleBitMap
 	database.POSTGRES.Preload("FrequentCustomerPeople").
-		Where("person_id = ?").
+		Where("person_id = ?", personID).
 		Order("id desc").
 		First(&bitMap)
 
 	if bitMap.ID == 0 || len(bitMap.BitMap) != 32 { // 以前从来没来过
 		bitMap.FrequentCustomerPeopleID = person.ID
+		bitMap.PersonID = personID
 		bitMap.BitMap = "00000000000000000000000000000001"
 		err := database.POSTGRES.Save(&bitMap).Error
 
@@ -51,7 +56,9 @@ func (person *FrequentCustomerPeople) UpdateBitMap(today time.Time) (FrequentCus
 		// 来过的话就重新计算一下bitMap保存下里
 		var newBitMap FrequentCustomerPeopleBitMap
 		newBitMap.FrequentCustomerPeopleID = person.ID
-		days := (today.Add(time.Second).Sub(bitMap.FrequentCustomerPeople.Date)) / (86400 * time.Second) // +1s保证除尽
+		newBitMap.PersonID = personID
+		lastDate := utils.CurrentDate(bitMap.FrequentCustomerPeople.Hour)
+		days := (today.Add(time.Second).Sub(lastDate)) / (86400 * time.Second) // +1s保证除尽
 
 		if days > 30 || days <= 0 {
 			newBitMap.BitMap = "00000000000000000000000000000001"
@@ -86,7 +93,11 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 	lastIndex := strings.LastIndex(bitMap.BitMap[:len(bitMap.BitMap)-1], "1")
 	if lastIndex != -1 {
 		person.Interval = uint(31 - lastIndex)
+		person.IsFrequentCustomer = true
+	} else {
+		person.IsFrequentCustomer = false
 	}
+	database.POSTGRES.Save(person)
 }
 
 func (person *FrequentCustomerPeople) GetType() string {

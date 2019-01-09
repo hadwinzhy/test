@@ -32,7 +32,9 @@ var rootCmd = &cobra.Command{
 		// Step 5: Sentry
 		initializers.SentryConfig()
 
-		go kafka.CountFrequentConsumer()
+		if os.Getenv("KAFKA_CONSUMER_SWITCH") != "OFF" {
+			go kafka.CountFrequentConsumer()
+		}
 		// Step 5: init router
 		// go func() {
 		r := gin.Default()

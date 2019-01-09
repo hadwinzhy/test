@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"siren/pkg/logger"
 	"siren/pkg/middleware"
+	"siren/src/distributions"
 	"siren/src/frequent_rules"
 	"siren/src/frequent_table"
 
@@ -30,10 +31,10 @@ func InitRouters(r *gin.Engine) {
 			"ping": "pong",
 		})
 	})
-	frequentGroup := r.Group("/v1/api")
-	{
-		frequent_rules.Register(frequentGroup)
-		frequent_table.Register(frequentGroup)
-	}
+
+	v1 := r.Group("/v1/api/")
+	distributions.Register(v1)
+	frequent_rules.Register(v1)
+	frequent_table.Register(v1)
 
 }

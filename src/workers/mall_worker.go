@@ -8,7 +8,8 @@ import (
 
 func MallCountFrequentCustomerHandler(person models.FrequentCustomerPeople, groupID uint, capturedAt int64) {
 	today := utils.CurrentDate(time.Now())
-	err := updateFrequentCustomerReport(&person, groupID, today)
+	hour := time.Unix(capturedAt, 0)
+	err := updateFrequentCustomerReport(&person, groupID, today, hour)
 	if err != nil {
 		return
 	}

@@ -42,6 +42,8 @@ var dbCmd = &cobra.Command{
 
 		case "bitmap":
 			createBitMaps()
+		case "addIndexForPeople":
+			addIndexForPeople()
 		}
 	},
 }
@@ -72,4 +74,8 @@ func createBitMaps() {
 	// }
 
 	// database.POSTGRES.Save(&newBitMap)
+}
+
+func addIndexForPeople() {
+	database.POSTGRES.Model(&models.FrequentCustomerPeople{}).AddIndex("idx_group_frequent_customer", "frequent_customer_group_id", "is_frequent_customer")
 }
