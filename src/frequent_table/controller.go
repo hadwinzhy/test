@@ -19,7 +19,7 @@ func GetFrequentTableHandler(context *gin.Context) {
 	log.Println(params)
 
 	var group models.FrequentCustomerGroup
-	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", params.CompanyID, params.ShopID).First(&group).Error; dbError != nil {
+	if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&group).Error; dbError != nil {
 		MakeResponse(context, http.StatusBadRequest, dbError.Error())
 		return
 	}
