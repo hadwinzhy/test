@@ -59,7 +59,7 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 
 	} else {
 		database.POSTGRES.Model(&dataItems).
-			Select("date_trunc('day', hour) AS hour, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
+			Select("date_trunc('"+form.Period+"', hour) AS hour, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
 			Where("hour >= ?", fromTime).
 			Where("hour <= ?", toTime).
 			Group("1").
@@ -68,7 +68,7 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 
 	// insert missing 来扩充dataItems
 	fmt.Println(dataItems)
-	dataItems, _ = models.FrequentCustomerReports(dataItems).InsertMissing("day", fromTime, toTime)
+	dataItems, _ = models.FrequentCustomerReports(dataItems).InsertMissing(form.Period, fromTime, toTime)
 
 	fmt.Println(dataItems)
 

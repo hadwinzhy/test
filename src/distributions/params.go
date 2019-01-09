@@ -7,6 +7,7 @@ type ListDistributionParams struct {
 	CompanyID uint   `form:"company_id" binding:"required"`
 	ShopID    uint   `form:"shop_id"`
 	controllers.FromToParam
+	controllers.PeriodParam
 }
 
 type valueProportionPair struct {
@@ -21,4 +22,11 @@ type DistributionOutput struct {
 	New              valueProportionPair `json:"new"`
 	AverageInterval  string              `json:"average_interval"`
 	AverageFrequency string              `json:"average_frequency"`
+}
+
+func (form *ListDistributionParams) Normalize() {
+	form.FromToParam.Normalize()
+	if form.Period == "" {
+		form.Period = "day"
+	}
 }
