@@ -6,6 +6,8 @@ import (
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/utils"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +31,15 @@ func GetFrequentTableHandler(context *gin.Context) {
        sum(phase_eight) as phase_eight`
 
 	var results []models.FrequentCustomerHighTimeTableSerializer
-	for _, day := range weekDate() {
+
+	var date string
+	if params.Date == "" {
+		date = strconv.Itoa(int(time.Now().Unix()))
+	} else {
+		date = params.Date
+	}
+
+	for _, day := range weekDate(date) {
 		day = utils.CurrentDate(day)
 		log.Println(day)
 		var data models.FrequentCustomerHighTimeTable

@@ -1,6 +1,10 @@
 package utils
 
-import "time"
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 func CurrentDate(captureAt time.Time) time.Time {
 	return time.Date(captureAt.Year(), captureAt.Month(), captureAt.Day(), 0, 0, 0, 0, time.Local)
@@ -63,4 +67,13 @@ func CurrentTime(originTime time.Time, period string) time.Time {
 		return time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	}
 	return originTime
+}
+
+func TimestampToTime(from string) time.Time {
+	if id := strings.Index(from, "."); id != -1 {
+		from = from[:id]
+	}
+	i, _ := strconv.ParseInt(from, 10, 64)
+	value := time.Unix(i, 0)
+	return value
 }
