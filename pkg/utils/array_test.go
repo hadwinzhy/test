@@ -14,6 +14,5 @@ type exampleType struct {
 func TestInsertMissing(t *testing.T) {
 	fmt.Println("start")
 	testSlice := make([]exampleType, 10)
-	InsertMissing(&testSlice, "Date", "day", time.Now(), time.Now())
 	fmt.Println(len(testSlice), cap(testSlice))
 }

@@ -10,6 +10,7 @@ type FrequentCustomerReport struct {
 	BaseModel
 	FrequentCustomerGroupID uint      `gorm:"index"`
 	Date                    time.Time `gorm:"type:date"`
+	Hour                    time.Time `gorm:"type:timestamp with time zone"`
 	HighFrequency           uint      `gorm:"type:integer"`
 	LowFrequency            uint      `gorm:"type:integer"`
 	NewComer                uint      `gorm:"type:integer"`
@@ -137,9 +138,9 @@ func (reports FrequentCustomerReports) InsertMissing(period string, fromTime tim
 
 	newTime := fromTime // init time
 	for i := range result {
-		result[i].Date = utils.CurrentTime(newTime, period)
+		result[i].Hour = utils.CurrentTime(newTime, period)
 		for _, report := range reports {
-			left := utils.CurrentDate(report.Date).UTC().Unix()
+			left := utils.CurrentDate(report.Hour).UTC().Unix()
 			right := utils.CurrentTime(newTime, period).Unix()
 			if left == right {
 				result[i] = report

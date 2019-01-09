@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"siren/pkg/database"
+	"siren/pkg/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -27,8 +28,10 @@ type FrequentCustomerPeople struct {
 	FrequentCustomerGroupID uint      `gorm:"index"`
 	PersonID                string    `gorm:"type:varchar(32)"`
 	Date                    time.Time `gorm:"type:date"`
+	Hour                    time.Time `gorm:"type:timestamp with time zone"`
 	Interval                uint      `gorm:"type:integer"`
 	Frequency               uint      `gorm:"type:integer"`
+	IsFrequentCustomer      bool      `gorm:"type:bool"`
 
 	customerType string // 隐藏字段，类型
 }
@@ -54,7 +57,8 @@ func (person *FrequentCustomerPeople) UpdateBitMap(personID string, today time.T
 		var newBitMap FrequentCustomerPeopleBitMap
 		newBitMap.FrequentCustomerPeopleID = person.ID
 		newBitMap.PersonID = personID
-		days := (today.Add(time.Second).Sub(bitMap.FrequentCustomerPeople.Date)) / (86400 * time.Second) // +1s保证除尽
+		lastDate := utils.CurrentDate(bitMap.FrequentCustomerPeople.Hour)
+		days := (today.Add(time.Second).Sub(lastDate)) / (86400 * time.Second) // +1s保证除尽
 
 		if days > 30 || days <= 0 {
 			newBitMap.BitMap = "00000000000000000000000000000001"
@@ -89,6 +93,9 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 	lastIndex := strings.LastIndex(bitMap.BitMap[:len(bitMap.BitMap)-1], "1")
 	if lastIndex != -1 {
 		person.Interval = uint(31 - lastIndex)
+		person.IsFrequentCustomer = true
+	} else {
+		person.IsFrequentCustomer = false
 	}
 	database.POSTGRES.Save(person)
 }

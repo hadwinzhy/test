@@ -32,7 +32,7 @@ func reportOutputMapper(item models.FrequentCustomerReport) DistributionOutput {
 	allCount := item.HighFrequency + item.LowFrequency + item.NewComer
 	frequentCustomers := item.HighFrequency + item.LowFrequency
 	return DistributionOutput{
-		Date: item.Date.Format("2006-01-02 15:04:05"),
+		Date: item.Hour.Format("2006-01-02 15:04:05"),
 		High: valueProportionPair{
 			Count:      item.HighFrequency,
 			Proportion: proportionCounter(item.HighFrequency, allCount),
@@ -59,16 +59,18 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 
 	} else {
 		database.POSTGRES.Model(&dataItems).
-			Select("date, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
-			Where("date >= ?", fromTime).
-			Where("date <= ?", toTime).
-			Group("date").
+			Select("date_trunc('day', hour) AS hour, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
+			Where("hour >= ?", fromTime).
+			Where("hour <= ?", toTime).
+			Group("1").
 			Find(&dataItems)
 	}
 
 	// insert missing 来扩充dataItems
-
+	fmt.Println(dataItems)
 	dataItems, _ = models.FrequentCustomerReports(dataItems).InsertMissing("day", fromTime, toTime)
+
+	fmt.Println(dataItems)
 
 	// 每一个元素进行一波计算， 算点比例和平均值
 	results := make([]DistributionOutput, len(dataItems))
