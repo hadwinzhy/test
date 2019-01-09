@@ -2,6 +2,7 @@ package frequent_rules
 
 import (
 	"encoding/json"
+	"siren/pkg/controllers/errors"
 
 	"qiniupkg.com/x/log.v7"
 
@@ -27,44 +28,101 @@ func (one OneRule) IsSuitable() bool {
 }
 
 // lowRule and highRule should be suit
-func (rule PostRules) IsSuitableParam() bool {
+func (rule PostRules) IsSuitableParam() (bool, *errors.Error) {
 	if len(rule.LowRule) == 0 || len(rule.HighRule) == 0 {
 		log.Println("error found step zero")
-		return false
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "the length of lowRules or highRules should be more than one",
+				TitleZH:    "高低频规则至少需要设置一个",
+			},
+			Detail: "高低频规则至少需要设置一个",
+		}
 	}
 	if rule.LowRule[len(rule.LowRule)-1].To > rule.Limit {
 		log.Println("error found step one")
-		return false
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "the low rule  in (to) is larger than rule limit",
+				TitleZH:    "低频规则超过阈值",
+			},
+			Detail: "低频规则超过阈值",
+		}
 	}
 
 	if rule.HighRule[0].From < rule.Limit {
 		log.Println("error found step two")
-		return false
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "the high rule in (from) is less than rule limit",
+				TitleZH:    "高频规则小于阈值",
+			},
+			Detail: "高频规则小于阈值",
+		}
 	}
 
 	for _, i := range rule.LowRule {
 		if !i.IsSuitable() {
 			log.Println("error found step three")
-			return false
+			return false, &errors.Error{
+				ErrorCode: errors.ErrorCode{
+					HTTPStatus: 400,
+					Code:       400,
+					Title:      "the low rule from larger than to",
+					TitleZH:    "低频规则中From大于To",
+				},
+				Detail: "低频规则中From大于To",
+			}
 		}
 	}
 	if rule.LowRule[len(rule.LowRule)-1].To > rule.HighRule[0].From {
 		log.Println("error found step four")
-		return false
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "rule is not correct",
+				TitleZH:    "低频规则的最大值大于高频规则的最小值",
+			},
+			Detail: "低频规则的最大值大于高频规则的最小值",
+		}
 	}
 
 	for _, j := range rule.HighRule {
 		if !j.IsSuitable() {
 			log.Println("error found step five")
-			return false
+			return false, &errors.Error{
+				ErrorCode: errors.ErrorCode{
+					HTTPStatus: 400,
+					Code:       400,
+					Title:      "the high rule from larger than to",
+					TitleZH:    "高频规则中From大于To",
+				},
+				Detail: "高频规则中From大于To",
+			}
 		}
 	}
 
 	if len(rule.LowRule)+len(rule.HighRule) > 5 {
 		log.Println("error found step six")
-		return false
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "the length of rules large than 5",
+				TitleZH:    "总规则数大于5",
+			},
+			Detail: "总规则数大于5",
+		}
 	}
-	return true
+	return true, nil
+
 }
 
 func (rule PostRules) JsonbLowHandler() postgres.Jsonb {

@@ -4,9 +4,8 @@ import (
 	"log"
 	"net/http"
 	"siren/models"
+	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
-
-	"github.com/pkg/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,8 +17,12 @@ func PostFrequentRuleHandler(context *gin.Context) {
 		return
 	}
 
-	if !params.IsSuitableParam() {
-		MakeResponse(context, http.StatusBadRequest, errors.New("params are not correct").Error())
+	var (
+		ok  bool
+		err *errors.Error
+	)
+	if ok, err = params.IsSuitableParam(); !ok {
+		errors.ResponseError(context, *err)
 		return
 	}
 	log.Println(params, "siren")
@@ -57,7 +60,16 @@ func GetAllFrequentRulesHandler(context *gin.Context) {
 	params = context.Query("company_id")
 	var results models.FrequentCustomerRules
 	if dbError := database.POSTGRES.Where("company_id = ?", params).Find(&results).Error; dbError != nil {
-		MakeResponse(context, http.StatusBadRequest, errors.New("records not found").Error())
+		err := &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "record not found",
+				TitleZH:    "记录未找到",
+			},
+			Detail: "记录未找到",
+		}
+		errors.ResponseError(context, *err)
 		return
 	}
 	var resultsSerializer []models.FrequentCustomerRuleBasicSerializer
@@ -75,7 +87,16 @@ func DeleteOneFrequentRuleHandler(context *gin.Context) {
 	log.Println(params)
 	var result models.FrequentCustomerRule
 	if dbError := database.POSTGRES.Where("company_id = ?", params).First(&result).Error; dbError != nil {
-		MakeResponse(context, http.StatusBadRequest, errors.New("records not found").Error())
+		err := &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "record not found",
+				TitleZH:    "记录未找到",
+			},
+			Detail: "记录未找到",
+		}
+		errors.ResponseError(context, *err)
 		return
 	}
 	database.POSTGRES.Delete(&result)
