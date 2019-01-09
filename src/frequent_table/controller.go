@@ -1,7 +1,6 @@
 package frequent_table
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"siren/models"
@@ -46,24 +45,6 @@ func GetFrequentTableHandler(context *gin.Context) {
 		results = append(results, data.BasicSerializer())
 	}
 
-	// max
-	sql2 := fmt.Sprintf(`select max(phase_one) as phase_one, max(phase_two) as phase_two, max(phase_three) as phase_three, max(phase_four) as phase_four,
-			max(phase_five) as phase_five, max(phase_six) as phase_six, max(phase_seven) as phase_seven, max(phase_eight) as phase_eight from
-			frequent_customer_high_time_tables where frequent_customer_group_id = %d and date between %s and %s
-`, group.ID, weekDate()[6], weekDate()[0])
-	var maxCount maxNumber
-	database.POSTGRES.Raw(sql2).Scan(&maxCount)
 	MakeResponse(context, http.StatusOK, results)
 
-}
-
-type maxNumber struct {
-	PhaseOne   int `json:"phase_one"`
-	PhaseTwo   int `json:"phase_two"`
-	PhaseThree int `json:"phase_three"`
-	PhaseFour  int `json:"phase_four"`
-	PhaseFive  int `json:"phase_five"`
-	PhaseSix   int `json:"phase_six"`
-	PhaseSeven int `json:"phase_seven"`
-	PhaseEight int `json:"phase_eight"`
 }
