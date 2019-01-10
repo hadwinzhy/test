@@ -70,8 +70,8 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 
 	var allResult models.FrequentCount
 	allResult.Vitality = make(map[string]interface{})
-	allResult.Vitality["frequency"] = resultsReport
-	allResult.Vitality["interval"] = lowHighResult
+	allResult.Vitality["interval"] = resultsReport
+	allResult.Vitality["frequency"] = lowHighResult
 	MakeResponse(context, http.StatusOK, allResult)
 
 }
