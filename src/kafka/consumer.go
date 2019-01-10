@@ -59,7 +59,7 @@ func consumerInit() {
 	StoreCountFrequentConsumerParams.handler = storeInfoHandler
 
 	// todo: titan faces/identification
-	titanParams.identificationURL = fmt.Sprintf("http://" + configs.FetchFieldValue("TitanHOST") + "/faces/identification")
+	titanParams.identificationURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/faces/identification")
 
 	// todo: rule number
 	ruleNumber.high = 3
@@ -132,14 +132,14 @@ func mallInfoHandler(values []byte) {
 
 	var group *models.FrequentCustomerGroup
 	var ok bool
-	if ok, group = saveGroupInfo(info.CompanyID, info.ShopID); !ok {
+	if ok, group = saveGroupInfo(info.CompanyID); !ok {
 		return
 	}
 	fetchDataByTitan(group, info)
 
 }
 
-func saveGroupInfo(companyID uint, shopID uint) (bool, *models.FrequentCustomerGroup) {
+func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
 	if dbError := database.POSTGRES.Where("company_id = ?", companyID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
@@ -154,24 +154,27 @@ func saveGroupInfo(companyID uint, shopID uint) (bool, *models.FrequentCustomerG
 }
 
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
-	response, err := http.PostForm(titanParams.identificationURL, url.Values{
+	log.Println("URL", titanParams.identificationURL)
+	response, _ := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
 		"face_id":    {info.FaceID},
 		"group_id":   {info.GroupID},
 		"top":        {"20"},
 	})
-
-	if err != nil {
-		return false
-	}
+	log.Println("response", response.StatusCode)
+	//if err != nil {
+	//	return false
+	//}
 	defer response.Body.Close()
 
 	var values interface{}
 	responseByte, _ := ioutil.ReadAll(response.Body)
-	if err := json.Unmarshal(responseByte, values); err != nil {
+	if err := json.Unmarshal(responseByte, &values); err != nil {
 		return false
 	}
+	log.Println("titan values", values)
+	// todo: fix it if status is not ok
 	var personIDs []string
 	for _, value := range values.(titan.CandidateData).Candidates {
 		personIDs = append(personIDs, value.PersonID)
