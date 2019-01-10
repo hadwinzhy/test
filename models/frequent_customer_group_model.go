@@ -21,3 +21,5 @@ func FetchFrequentCustomerGroup(companyID uint, shopID uint) []FrequentCustomerG
 	query.Find(&results)
 	return results
 }
+
+type FrequentCustomerGroups []FrequentCustomerGroup

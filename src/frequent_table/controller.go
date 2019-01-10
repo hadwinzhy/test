@@ -20,19 +20,24 @@ func GetFrequentTableHandler(context *gin.Context) {
 	}
 	log.Println("siren", params)
 
-	var group models.FrequentCustomerGroup
-	if params.ShopID != 0 {
-		// todo: fix it , 门店类型如果不传入shop_id  应该怎么操作？聚合
-		if dbError := database.POSTGRES.Where("company_id =? AND shop_id = ?", params.CompanyID, params.ShopID).First(&group).Error; dbError != nil {
-			//MakeResponse(context, http.StatusBadRequest, dbError.Error())
-			//return
-			// 未找到，返回空值
+	var groups models.FrequentCustomerGroups
+	if params.Type == "store" {
+		if params.ShopID == 0 {
+			if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).Find(&groups).Error; dbError != nil {
+			}
+		} else {
+			if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", params.CompanyID, params.ShopID).Find(&groups).Error; dbError != nil {
+			}
 		}
 	} else {
-		if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&group).Error; dbError != nil {
-			//MakeResponse(context, http.StatusBadRequest, dbError.Error())
-			//return
-			// 未找到，返回空值
+		if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).Find(&groups).Error; dbError != nil {
+
+		}
+	}
+	var groupIDs []uint
+	if len(groups) != 0 {
+		for _, group := range groups {
+			groupIDs = append(groupIDs, group.ID)
 		}
 	}
 
@@ -53,7 +58,7 @@ func GetFrequentTableHandler(context *gin.Context) {
 		day = utils.CurrentDate(day)
 		log.Println(day)
 		var data models.FrequentCustomerHighTimeTable
-		query := database.POSTGRES.Model(&data).Where("frequent_customer_group_id = ?", group.ID)
+		query := database.POSTGRES.Model(&data).Where("frequent_customer_group_id in (?)", groupIDs)
 		query = query.Select(sql).Where("date = ?", day).Group("id, frequent_customer_group_id")
 		if dbError := query.First(&data).Error; dbError != nil {
 			data = models.FrequentCustomerHighTimeTable{
