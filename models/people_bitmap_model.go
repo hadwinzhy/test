@@ -29,7 +29,6 @@ type FrequentCustomerPeople struct {
 	PersonID                string    `gorm:"type:varchar(32)"`
 	Date                    time.Time `gorm:"type:date"`
 	Hour                    time.Time `gorm:"type:timestamp with time zone"`
-	CaptureAt               time.Time `gorm:"type:timestamp with time zone"`
 	Interval                uint      `gorm:"type:integer"`
 	Frequency               uint      `gorm:"type:integer"`
 	IsFrequentCustomer      bool      `gorm:"type:bool"`

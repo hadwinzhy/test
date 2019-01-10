@@ -22,7 +22,7 @@ func fetchFrequentCustomerGroup(companyID uint, shopID uint) (models.FrequentCus
 	return group, err
 }
 
-func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID string, today time.Time, hour time.Time) (models.FrequentCustomerPeople, error) {
+func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID string, today time.Time, hour time.Time, eventID uint) (models.FrequentCustomerPeople, error) {
 	var person models.FrequentCustomerPeople
 	// var comer comerBasicInfo
 
@@ -36,12 +36,13 @@ func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID s
 		person.FrequentCustomerGroupID = group.ID
 		person.PersonID = personID
 		person.Hour = hour
+		person.EventID = eventID
 		err := database.POSTGRES.Save(&person).Error
 		if err != nil {
 			return person, err
 		}
 	} else {
-		logger.Error("store_worker", "fetch_person", "already_exists personID = ", personID, " groupID = ", group.ID, " captureHour = ", hour)
+		logger.Error("store_worker", "fetch_person", "already_exists personID = ", personID, " groupID = ", group.ID, " captureTime = ", hour)
 		return person, errors.New("今天已经来过，不能用作回头客")
 	}
 	return person, nil
@@ -140,7 +141,7 @@ func updateFrequentCustomerHighTimeTable(groupID uint, today time.Time, captureA
 	table.AddCount(time.Unix(captureAt, 0))
 }
 
-func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, captureAt int64) {
+func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, captureAt int64, eventID uint) {
 	// 来了个新客
 
 	// 0. 看看有没有frequent customer group
@@ -154,7 +155,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	today := utils.CurrentDate(captureTime)
 	thisHour := utils.CurrentTime(captureTime, "hour")
 	// 1. 首先看这组companyID shopID里有没有这个personID的bitmap，bitmap里记录了一个值，当天这人有没有来过
-	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, captureTime)
+	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, captureTime, eventID)
 	if err != nil {
 		return
 	}

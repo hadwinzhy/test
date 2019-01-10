@@ -232,6 +232,7 @@ type StoreInfo struct {
 	ShopID    uint   `json:"shop_id"`
 	PersonID  string `json:"person_id"`
 	CaptureAt int64  `json:"capture_at"`
+	EventID   uint   `json:"event_id"`
 }
 
 func storeInfoHandler(values []byte) {
@@ -242,6 +243,6 @@ func storeInfoHandler(values []byte) {
 		return
 	}
 
-	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
+	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt, info.EventID)
 
 }

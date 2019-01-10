@@ -20,10 +20,16 @@ func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerR
 	fromTime, toTime := form.GetFromAndToTime()
 
 	// 回头group范围
-	query := database.POSTGRES.Where("frequent_customer_group_id in (?)", groupIDs)
+	query := database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
+		Preload("Event").
+		Select("person_id, max(id) AS id, max(event_id) AS event_id, max(frequency) AS frequency, max(capture_at) AS capture_at")
+
+	query = query.Where("frequent_customer_group_id in (?)", groupIDs)
 
 	// 时间范围
 	query = query.Where("hour >= ?", fromTime).Where("hour < ?", toTime)
+
+	query = query.Group("person_id")
 
 	order := form.OrderBy + " " + form.SortBy
 
