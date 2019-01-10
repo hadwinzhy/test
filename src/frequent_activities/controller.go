@@ -49,13 +49,29 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 		Where("frequent_customer_group_id in (?)", groupIDs).
 		Where("date BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
 	query.Find(&results)
-	var resultsReport = make(map[string]float64)
-	resultsReport = results.Activities()
-	log.Println("report", resultsReport)
-	MakeResponse(context, http.StatusOK, resultsReport)
 
-	//queryLowHigh := database.POSTGRES.
-	//	Where("frequent_customer_group_id in (?)", groupIDs).
-	//	Where("date BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+	resultsReport := results.Activities()
+	log.Println("report", resultsReport)
+
+	beforeMonth, day := monthHandler(params.Date)
+	queryLowHigh := database.POSTGRES.
+		Where("frequent_customer_group_id in (?)", groupIDs).
+		Where("date BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
+
+	var rules models.FrequentCustomerRule
+	if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&rules).Error; dbError != nil {
+
+	}
+	var lowHigh models.FrequentCustomerPeoples
+	queryLowHigh.Find(&lowHigh)
+	var lowHighResult []*models.OneStatic
+	lowHighResult = lowHigh.FrequentMonthStatic(rules)
+	log.Println("lowHighResult", lowHighResult)
+
+	var allResult models.FrequentCount
+	allResult.Vitality = make(map[string]interface{})
+	allResult.Vitality["frequency"] = resultsReport
+	allResult.Vitality["interval"] = lowHighResult
+	MakeResponse(context, http.StatusOK, allResult)
 
 }

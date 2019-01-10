@@ -128,16 +128,45 @@ func (person *FrequentCustomerPeople) IsHighFrequency() bool {
 
 type FrequentCustomerPeoples []FrequentCustomerPeople
 
-func (ff FrequentCustomerPeoples) Activities() map[string]float64 {
-	var activitiesReport = make(map[string]float64)
+// frequent handler
+
+type FrequentCount struct {
+	Vitality map[string]interface{} `json:"vitality"`
+}
+
+func listIntervalFrequent() [4]*OneStatic {
+	var results [4]*OneStatic
+	results[0] = &OneStatic{
+		From:  1,
+		To:    3,
+		Type:  "",
+		Count: 0,
+	}
+	results[1] = &OneStatic{
+		From:  4,
+		To:    7,
+		Type:  "",
+		Count: 0,
+	}
+	results[2] = &OneStatic{
+		From:  8,
+		To:    15,
+		Type:  "",
+		Count: 0,
+	}
+	results[3] = &OneStatic{
+		From:  16,
+		Type:  "",
+		To:    30,
+		Count: 0,
+	}
+	return results
+}
+
+func (ff FrequentCustomerPeoples) Activities() [4]*OneStatic {
+	results := listIntervalFrequent()
 	if len(ff) == 0 {
-		activitiesReport = map[string]float64{
-			"1~3":   0,
-			"4~7":   0,
-			"8~15":  0,
-			"16~30": 0,
-		}
-		return activitiesReport
+		return results
 	}
 	counts := len(ff)
 	var (
@@ -157,13 +186,18 @@ func (ff FrequentCustomerPeoples) Activities() map[string]float64 {
 			fourPhase += f.Frequency
 		}
 	}
-	activitiesReport = map[string]float64{
-		"1~3":   float64(onePhase) / float64(counts),
-		"4~7":   float64(twoPhase) / float64(counts),
-		"8~15":  float64(threePhase) / float64(counts),
-		"16~30": float64(fourPhase) / float64(counts),
-	}
-	return activitiesReport
+	results[0].Count = onePhase
+	results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts), 'f', -1, 32) + "%"
+
+	results[1].Count = twoPhase
+	results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts), 'f', -1, 32) + "%"
+
+	results[2].Count = threePhase
+	results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts), 'f', -1, 32) + "%"
+
+	results[3].Count = fourPhase
+	results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts), 'f', -1, 32) + "%"
+	return results
 }
 
 type OneStatic struct {
