@@ -19,17 +19,19 @@ func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerR
 
 	fromTime, toTime := form.GetFromAndToTime()
 
-	// 回头group范围
+	// 回头group范围，根据personid聚合取最新的
 	query := database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
 		Preload("Event").
-		Select("person_id, max(id) AS id, max(event_id) AS event_id, max(frequency) AS frequency, max(capture_at) AS capture_at")
+		Select("person_id, frequent_customer_group_id, max(id) AS id, max(event_id) AS event_id, max(frequency) AS frequency, max(hour) AS hour")
 
 	query = query.Where("frequent_customer_group_id in (?)", groupIDs)
+
+	query = query.Where("is_frequent_customer = ? ", true)
 
 	// 时间范围
 	query = query.Where("hour >= ?", fromTime).Where("hour < ?", toTime)
 
-	query = query.Group("person_id")
+	query = query.Group("person_id, frequent_customer_group_id")
 
 	order := form.OrderBy + " " + form.SortBy
 
@@ -47,8 +49,47 @@ func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerR
 	}
 
 	// 组装结果
+	result := make([]FrequentCustomerRecord, len(peopleList))
 
-	return []FrequentCustomerRecord{}, controllers.PaginationResponse{}, nil
+	var shopIDSlice []uint
+
+	for i, people := range peopleList {
+		shopIDSlice = append(shopIDSlice, people.Event.ShopID)
+		result[i] = FrequentCustomerRecord{
+			FrequentCustomerPersonID: people.ID,
+			FirstCaptureURL:          people.Event.OriginalFace,
+			Name:                     "", // 要根据person_id对应的去取，作标记的时候再做
+			CaptureAt:                people.Event.CaptureAt,
+			Age:                      people.Event.Age,
+			Gender:                   people.Event.Gender,
+			ShopID:                   people.Event.ShopID,
+			ShopName:                 "", // 根据shopID去取
+			DeviceID:                 people.Event.DeviceID,
+			DeviceName:               people.Event.DeviceName,
+			Frequency:                people.Frequency,
+			Note:                     "", // 要根据person_id对应的去取，作标记的时候再做
+		}
+	}
+
+	// manually load map
+	if len(shopIDSlice) > 0 {
+		shopIDMap := make(map[uint]string)
+		var shopIDName []struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		}
+
+		database.POSTGRES.Table("shops").Select("id, name").Where("id in (?)", shopIDSlice).Where("deleted_at is NULL").Find(&shopIDName)
+		for _, pair := range shopIDName {
+			shopIDMap[pair.ID] = pair.Name
+		}
+
+		for i := range result {
+			result[i].ShopName = shopIDMap[result[i].ShopID]
+		}
+	}
+
+	return result, paginations, nil
 }
 
 func RecordsListHandler(c *gin.Context) {
