@@ -18,18 +18,20 @@ func GetFrequentTableHandler(context *gin.Context) {
 	if err := context.ShouldBindQuery(&params); err != nil {
 		return
 	}
-	log.Println(params)
+	log.Println("siren", params)
 
 	var group models.FrequentCustomerGroup
 	if params.ShopID != 0 {
 		if dbError := database.POSTGRES.Where("company_id =? AND shop_id = ?", params.CompanyID, params.ShopID).First(&group).Error; dbError != nil {
-			MakeResponse(context, http.StatusBadRequest, dbError.Error())
-			return
+			//MakeResponse(context, http.StatusBadRequest, dbError.Error())
+			//return
+			// 未找到，返回空值
 		}
 	} else {
 		if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&group).Error; dbError != nil {
-			MakeResponse(context, http.StatusBadRequest, dbError.Error())
-			return
+			//MakeResponse(context, http.StatusBadRequest, dbError.Error())
+			//return
+			// 未找到，返回空值
 		}
 	}
 
