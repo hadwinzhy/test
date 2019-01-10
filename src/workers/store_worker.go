@@ -47,7 +47,7 @@ func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID s
 	return person, nil
 }
 
-func updateBitMap(frequentPersonID uint, personID string, today time.Time, hour time.Time) (models.FrequentCustomerPeopleBitMap, error) {
+func updateBitMap(frequentPersonID uint, personID string, today time.Time) (models.FrequentCustomerPeopleBitMap, error) {
 	var bitMap models.FrequentCustomerPeopleBitMap
 	database.POSTGRES.Preload("FrequentCustomerPeople").
 		Where("person_id = ?", personID).
@@ -154,13 +154,13 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	today := utils.CurrentDate(captureTime)
 	thisHour := utils.CurrentTime(captureTime, "hour")
 	// 1. 首先看这组companyID shopID里有没有这个personID的bitmap，bitmap里记录了一个值，当天这人有没有来过
-	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, thisHour)
+	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, captureTime)
 	if err != nil {
 		return
 	}
 
 	// 1.1 有的话，这就是一个来过的人，记在bitmap中更新那一行
-	bitMap, err := updateBitMap(person.ID, personID, today, thisHour)
+	bitMap, err := updateBitMap(person.ID, personID, today)
 	if err != nil {
 		return
 	}

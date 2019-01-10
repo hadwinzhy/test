@@ -1,6 +1,8 @@
 package distributions
 
-import "siren/pkg/controllers"
+import (
+	"siren/pkg/controllers"
+)
 
 type ListDistributionParams struct {
 	ReturnALL string `form:"return" binding:"eq=all_list|eq=all_count|eq=all_list_average_count"`
