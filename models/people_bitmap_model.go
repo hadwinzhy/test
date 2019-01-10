@@ -165,3 +165,70 @@ func (ff FrequentCustomerPeoples) Activities() map[string]float64 {
 	}
 	return activitiesReport
 }
+
+type OneStatic struct {
+	From       uint   `json:"from"`
+	To         uint   `json:"to"`
+	Type       string `json:"type"`
+	Count      uint   `json:"count"`
+	Proportion string `json:"proportion"`
+}
+
+func listStaticFrequent(rule FrequentCustomerRule) []*OneStatic {
+	var results []*OneStatic
+	ruleSerializer := rule.BasicSerializer()
+	for _, i := range ruleSerializer.LowFrequency {
+		var one *OneStatic
+		one = &OneStatic{
+			From:  i.From,
+			To:    i.To,
+			Type:  i.Type,
+			Count: 0,
+		}
+		results = append(results, one)
+	}
+	for _, j := range ruleSerializer.HighFrequency {
+		var one *OneStatic
+		one = &OneStatic{
+			From:  j.From,
+			Type:  j.Type,
+			To:    j.To,
+			Count: 0,
+		}
+		results = append(results, one)
+	}
+	return results
+}
+
+func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []*OneStatic {
+	manyStatics := listStaticFrequent(frequentRule) // 高低频表
+	if len(ff) == 0 {
+		return manyStatics
+	}
+	for _, f := range ff {
+		getFrequentCount(f.Frequency, manyStatics)
+	}
+	getFrequentProportion(len(ff), manyStatics)
+	return manyStatics
+
+}
+
+func getFrequentCount(frequent uint, many []*OneStatic) []*OneStatic {
+
+	for _, i := range many {
+		if frequent >= i.From && frequent <= i.To {
+			i.Count += 1
+		}
+	}
+	return many
+}
+
+func getFrequentProportion(length int, many []*OneStatic) []*OneStatic {
+	if length == 0 {
+		return many
+	}
+	for _, i := range many {
+		i.Proportion = strconv.FormatFloat(float64(i.Count)/float64(length), 'f', -1, 32) + "%"
+	}
+	return many
+}

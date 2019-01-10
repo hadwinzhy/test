@@ -58,8 +58,9 @@ func PostFrequentRuleHandler(context *gin.Context) {
 func GetAllFrequentRulesHandler(context *gin.Context) {
 	var params string
 	params = context.Query("company_id")
+	log.Println("params in siren", params)
 	var results models.FrequentCustomerRules
-	if dbError := database.POSTGRES.Where("company_id = ?", params).Find(&results).Error; dbError != nil {
+	if dbError := database.POSTGRES.Where("company_id = ?", params).Find(&results).Error; len(results) == 0 || dbError != nil {
 		err := &errors.Error{
 			ErrorCode: errors.ErrorCode{
 				HTTPStatus: 400,

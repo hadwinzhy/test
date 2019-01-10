@@ -246,6 +246,6 @@ func storeInfoHandler(values []byte) {
 		return
 	}
 
-	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
+	//workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
 
 }

@@ -17,3 +17,8 @@ func dateHandler(date string) (string, string) {
 	right := day
 	return left.Format("2006-01-02 15:04:05"), right.Format("2006-01-02 15:04:05")
 }
+
+func monthHandler(date string) (string, string) {
+	return "-1", "-1"
+
+}

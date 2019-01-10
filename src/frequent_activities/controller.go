@@ -54,4 +54,8 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	log.Println("report", resultsReport)
 	MakeResponse(context, http.StatusOK, resultsReport)
 
+	//queryLowHigh := database.POSTGRES.
+	//	Where("frequent_customer_group_id in (?)", groupIDs).
+	//	Where("date BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+
 }
