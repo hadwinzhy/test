@@ -5,6 +5,7 @@ import (
 	"siren/pkg/logger"
 	"siren/pkg/middleware"
 	"siren/src/distributions"
+	"siren/src/frequent_activities"
 	"siren/src/frequent_rules"
 	"siren/src/frequent_table"
 
@@ -36,5 +37,6 @@ func InitRouters(r *gin.Engine) {
 	distributions.Register(v1)
 	frequent_rules.Register(v1)
 	frequent_table.Register(v1)
+	frequent_activities.Register(v1)
 
 }

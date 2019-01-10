@@ -216,8 +216,10 @@ func personIDHandler(groupID uint, personUUID string, personIDs []string, captur
 			}
 			if len(resultsValues) == 0 {
 				onePerson.Interval = 0 // 新客，间隔为 0
+				onePerson.IsFrequentCustomer = false
 			} else {
 				onePerson.Interval = uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1)
+				onePerson.IsFrequentCustomer = true
 			}
 			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
 				return false

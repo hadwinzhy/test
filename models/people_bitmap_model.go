@@ -125,3 +125,43 @@ func (person *FrequentCustomerPeople) GetType() string {
 func (person *FrequentCustomerPeople) IsHighFrequency() bool {
 	return person.GetType() == FREQUENT_CUSTOMER_TYPE_HIGH
 }
+
+type FrequentCustomerPeoples []FrequentCustomerPeople
+
+func (ff FrequentCustomerPeoples) Activities() map[string]float64 {
+	var activitiesReport = make(map[string]float64)
+	if len(ff) == 0 {
+		activitiesReport = map[string]float64{
+			"1~3":   0,
+			"4~7":   0,
+			"8~15":  0,
+			"16~30": 0,
+		}
+		return activitiesReport
+	}
+	counts := len(ff)
+	var (
+		onePhase   uint
+		twoPhase   uint
+		threePhase uint
+		fourPhase  uint
+	)
+	for _, f := range ff {
+		if f.Interval >= 1 && f.Interval <= 3 {
+			onePhase += f.Frequency
+		} else if f.Interval >= 4 && f.Interval <= 7 {
+			twoPhase += f.Frequency
+		} else if f.Interval >= 8 && f.Interval <= 15 {
+			threePhase += f.Frequency
+		} else if f.Interval >= 16 {
+			fourPhase += f.Frequency
+		}
+	}
+	activitiesReport = map[string]float64{
+		"1~3":   float64(onePhase) / float64(counts),
+		"4~7":   float64(twoPhase) / float64(counts),
+		"8~15":  float64(threePhase) / float64(counts),
+		"16~30": float64(fourPhase) / float64(counts),
+	}
+	return activitiesReport
+}

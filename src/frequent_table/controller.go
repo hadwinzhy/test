@@ -22,6 +22,7 @@ func GetFrequentTableHandler(context *gin.Context) {
 
 	var group models.FrequentCustomerGroup
 	if params.ShopID != 0 {
+		// todo: fix it , 门店类型如果不传入shop_id  应该怎么操作？聚合
 		if dbError := database.POSTGRES.Where("company_id =? AND shop_id = ?", params.CompanyID, params.ShopID).First(&group).Error; dbError != nil {
 			//MakeResponse(context, http.StatusBadRequest, dbError.Error())
 			//return
