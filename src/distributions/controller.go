@@ -45,8 +45,8 @@ func reportOutputMapper(item models.FrequentCustomerReport) DistributionOutput {
 			Count:      item.NewComer,
 			Proportion: proportionCounter(item.NewComer, allCount),
 		},
-		AverageFrequency: averageCounter(frequentCustomers, item.SumTimes),
-		AverageInterval:  averageCounter(frequentCustomers, item.SumInterval),
+		AverageFrequency: averageCounter(item.SumTimes, frequentCustomers),
+		AverageInterval:  averageCounter(item.SumInterval, frequentCustomers),
 	}
 }
 
