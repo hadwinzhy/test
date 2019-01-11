@@ -1,6 +1,8 @@
 package models
 
 import (
+	"encoding/json"
+
 	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
@@ -25,47 +27,73 @@ type rulePair struct {
 
 type FrequentCustomerRuleSerializer []rulePair
 
+var lf = []rulePair{
+	rulePair{
+		From: 1,
+		To:   2,
+		Type: "low",
+	},
+}
+
+var hf = []rulePair{
+	rulePair{
+		From: 3,
+		To:   3,
+		Type: "high",
+	},
+	rulePair{
+		From: 4,
+		To:   4,
+		Type: "high",
+	},
+	rulePair{
+		From: 5,
+		To:   5,
+		Type: "high",
+	},
+	rulePair{
+		From: 6,
+		To:   30,
+		Type: "high",
+	},
+}
+
 func (rule *FrequentCustomerRule) ReadableRule() ReadableFrequencyRule {
 	if rule.readableRules.Limit != 0 {
 		return rule.readableRules
 	}
 
-	// if rule.ID == 0 {
-	// TODO: 从数据中解析出readableFrequencyRule的方法
-	lf := []rulePair{
-		rulePair{
-			From: 1,
-			To:   2,
-			Type: "low",
-		},
+	// 从数据中解析出readableFrequentcyRule
+	if rule.ID != 0 {
+		var lowRulePair []rulePair
+		var highRulePair []rulePair
+		if err := json.Unmarshal(rule.LowFrequency.RawMessage, &lowRulePair); err != nil {
+			return ReadableFrequencyRule{
+				LowFrequency:  lf,
+				HighFrequency: hf,
+				Limit:         3,
+			}
+		}
+
+		if err := json.Unmarshal(rule.HighFrequency.RawMessage, &highRulePair); err != nil {
+			return ReadableFrequencyRule{
+				LowFrequency:  lf,
+				HighFrequency: hf,
+				Limit:         3,
+			}
+		}
+
+		limit := lowRulePair[len(lowRulePair)-1].To
+		return ReadableFrequencyRule{
+			LowFrequency:  lowRulePair,
+			HighFrequency: highRulePair,
+			Limit:         limit,
+		}
 	}
 
-	hf := []rulePair{
-		rulePair{
-			From: 3,
-			To:   3,
-			Type: "high",
-		},
-		rulePair{
-			From: 4,
-			To:   4,
-			Type: "high",
-		},
-		rulePair{
-			From: 5,
-			To:   5,
-			Type: "high",
-		},
-		rulePair{
-			From: 6,
-			To:   30,
-			Type: "high",
-		},
-	}
 	return ReadableFrequencyRule{
 		LowFrequency:  lf,
 		HighFrequency: hf,
 		Limit:         3,
 	}
-	// }
 }
