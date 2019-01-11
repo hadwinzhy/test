@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/qiniu/x/log.v7"
 )
 
 const (
@@ -188,16 +190,20 @@ func (ff FrequentCustomerPeoples) Activities() [4]*OneStatic {
 		}
 	}
 	results[0].Count = onePhase
-	results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts), 'f', 1, 32) + "%"
+	results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	log.Println("onePhase", onePhase, counts)
 
 	results[1].Count = twoPhase
-	results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts), 'f', 1, 32) + "%"
+	results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	log.Println("twoPhase", twoPhase, counts)
 
 	results[2].Count = threePhase
-	results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts), 'f', 1, 32) + "%"
+	results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	log.Println("threePhase", threePhase, counts)
 
 	results[3].Count = fourPhase
-	results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts), 'f', 1, 32) + "%"
+	results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	log.Println("fourPhase", fourPhase, counts)
 	return results
 }
 
@@ -263,7 +269,8 @@ func getFrequentProportion(length int, many []*OneStatic) []*OneStatic {
 		return many
 	}
 	for _, i := range many {
-		i.Proportion = strconv.FormatFloat(float64(i.Count)/float64(length), 'f', 1, 32) + "%"
+		log.Println(i, length)
+		i.Proportion = strconv.FormatFloat(float64(i.Count)/float64(length)*100, 'f', 1, 32) + "%"
 	}
 	return many
 }
