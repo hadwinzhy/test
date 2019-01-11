@@ -2,13 +2,12 @@ package models
 
 import (
 	"errors"
+	"log"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/qiniu/x/log.v7"
 )
 
 const (
