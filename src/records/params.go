@@ -42,3 +42,18 @@ func (form *FrequentCustomerRecordParams) Normalize() {
 
 	form.FromToParam.Normalize()
 }
+
+type FrequentCustomerRecordDetailParams struct {
+	controllers.PaginationParam
+	ShopID uint `form:"shop_id"`
+}
+
+type SingleEventRecord struct {
+	ID              uint      `json:"id"`
+	OriginalFaceURL string    `json:"original_face_url"`
+	CaptureAt       time.Time `json:"capture_at"`
+	ShopID          uint      `json:"shop_id"`
+	ShopName        string    `json:"shop_name"`
+	DeviceID        uint      `json:"device_id"`
+	DeviceName      string    `json:"device_name"`
+}
