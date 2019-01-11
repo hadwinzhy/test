@@ -69,11 +69,12 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 			Where("hour <= ?", toTime).
 			Where("frequent_customer_group_id in (?)", groupIDs).
 			Group("1").
+			Order("hour " + form.SortBy).
 			Find(&dataItems)
 	}
 
 	// insert missing 来扩充dataItems
-	dataItems, _ = models.FrequentCustomerReports(dataItems).InsertMissing(form.Period, fromTime, toTime)
+	dataItems, _ = models.FrequentCustomerReports(dataItems).InsertMissing(form.Period, fromTime, toTime, form.SortBy)
 
 	// 每一个元素进行一波计算， 算点比例和平均值
 	results := make([]DistributionOutput, len(dataItems))

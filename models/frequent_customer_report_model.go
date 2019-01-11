@@ -123,7 +123,7 @@ func (table *FrequentCustomerHighTimeTable) AddCount(captureAt time.Time) {
 // }
 type FrequentCustomerReports []FrequentCustomerReport
 
-func (reports FrequentCustomerReports) InsertMissing(period string, fromTime time.Time, toTime time.Time) ([]FrequentCustomerReport, error) {
+func (reports FrequentCustomerReports) InsertMissing(period string, fromTime time.Time, toTime time.Time, sortBy string) ([]FrequentCustomerReport, error) {
 	duration := utils.GetDurationByPeriod(period)
 	var total int
 	if period == "month" {
@@ -162,6 +162,14 @@ func (reports FrequentCustomerReports) InsertMissing(period string, fromTime tim
 		} else {
 			newTime = newTime.Add(duration)
 		}
+	}
+
+	if sortBy == "desc" {
+		anotherResult := make([]FrequentCustomerReport, len(result))
+		for i := range result {
+			anotherResult[i] = result[len(result)-1-i]
+		}
+		result = anotherResult
 	}
 	return result, nil
 }

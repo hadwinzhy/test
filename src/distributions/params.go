@@ -8,6 +8,7 @@ type ListDistributionParams struct {
 	ReturnALL string `form:"return" binding:"eq=all_list|eq=all_count|eq=all_list_average_count"`
 	CompanyID uint   `form:"company_id" binding:"required"`
 	ShopID    uint   `form:"shop_id"`
+	SortBy    string `form:"sort_by"`
 	controllers.FromToParam
 	controllers.PeriodParam
 }
@@ -30,5 +31,9 @@ func (form *ListDistributionParams) Normalize() {
 	form.FromToParam.Normalize()
 	if form.Period == "" {
 		form.Period = "day"
+	}
+
+	if form.SortBy != "desc" {
+		form.SortBy = "asc"
 	}
 }
