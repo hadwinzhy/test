@@ -257,7 +257,7 @@ func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCusto
 func getFrequentCount(frequent uint, many []*OneStatic) []*OneStatic {
 
 	for _, i := range many {
-		if frequent >= i.From && frequent <= i.To {
+		if frequent > i.From && frequent <= i.To {
 			i.Count += 1
 		}
 	}
