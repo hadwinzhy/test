@@ -225,7 +225,8 @@ type results []result
 
 func personIDHandler(eventID uint, groupID uint, personUUID string, values []byte, capturedAt int64) bool {
 	valuesJson := gjson.ParseBytes(values)
-	if valuesJson.Get("status").String() != "ok" || len(valuesJson.Get("candidates").Array()) == 0 {
+	exists := valuesJson.Get("candidates").Exists()
+	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) {
 		var onePerson models.FrequentCustomerPeople
 		onePerson.PersonID = personUUID
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
