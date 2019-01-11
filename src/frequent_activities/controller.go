@@ -51,7 +51,6 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	query.Find(&results)
 
 	resultsReport := results.Activities()
-	log.Println("report", resultsReport)
 
 	beforeMonth, day := monthHandler(params.Date)
 	queryLowHigh := database.POSTGRES.
@@ -66,7 +65,6 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	queryLowHigh.Find(&lowHigh)
 	var lowHighResult []*models.OneStatic
 	lowHighResult = lowHigh.FrequentMonthStatic(rules)
-	log.Println("lowHighResult", lowHighResult)
 
 	var allResult models.FrequentCount
 	allResult.Vitality = make(map[string]interface{})

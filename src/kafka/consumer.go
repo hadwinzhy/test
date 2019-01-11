@@ -176,9 +176,12 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 	}
 	log.Println("titan values", values)
 	// todo: fix it if status is not ok
-	if ok := personIDHandler(info.EventID, group.ID, info.PersonID, values, info.CapturedAt); !ok {
-		return false
+	if info.CompanyID != 0 {
+		if ok := personIDHandler(info.EventID, group.ID, info.PersonID, values, info.CapturedAt); !ok {
+			return false
+		}
 	}
+
 	return true
 
 }
