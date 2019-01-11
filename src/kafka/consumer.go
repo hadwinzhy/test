@@ -156,6 +156,8 @@ func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
 	log.Println("URL", titanParams.identificationURL)
+	info.ApiID = configs.FetchFieldValue("TitanAPIID")
+	info.ApiSecret = configs.FetchFieldValue("TitanAPISecret")
 	response, err := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
