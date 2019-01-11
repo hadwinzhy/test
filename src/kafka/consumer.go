@@ -140,15 +140,21 @@ func mallInfoHandler(values []byte) {
 
 func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 	var oneGroup models.FrequentCustomerGroup
+	var (
+		ok      bool
+		groupID string
+	)
 	if dbError := database.POSTGRES.Where("company_id = ?", companyID).First(&oneGroup).Error; dbError != nil {
 		oneGroup = models.FrequentCustomerGroup{
 			CompanyID: companyID,
-			GroupUUID: utils.GenerateUUID(20),
 		}
-		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
+
+		if ok, groupID = titanAddGroup(oneGroup.GroupUUID, fmt.Sprintf("%d_回头客", oneGroup.CompanyID)); !ok {
 			return false, nil
 		}
-		if ok := titanAddGroup(oneGroup.GroupUUID, fmt.Sprintf("%d_回头客", oneGroup.CompanyID)); !ok {
+		oneGroup.GroupUUID = groupID
+
+		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
 			return false, nil
 		}
 
@@ -156,7 +162,7 @@ func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 	return true, &oneGroup
 }
 
-func titanAddGroup(groupUUID string, name string) bool {
+func titanAddGroup(groupUUID string, name string) (bool, string) {
 	apiID := configs.FetchFieldValue("TitanAPIID")
 	apiSecret := configs.FetchFieldValue("TitanAPISecret")
 	response, err := http.PostForm(titanParams.groupCreateURL, url.Values{
@@ -167,16 +173,18 @@ func titanAddGroup(groupUUID string, name string) bool {
 	})
 	if err != nil {
 		log.Println("create group fail")
-		return false
+		return false, "-1"
 	}
 	defer response.Body.Close()
+	log.Println("titan add group", response.StatusCode)
 	content, _ := ioutil.ReadAll(response.Body)
 	values := gjson.ParseBytes(content)
 	if values.Get("status").String() != "ok" {
 		log.Println("status is not ok, create group fail")
-		return false
+		return false, "-1"
 	}
-	return true
+	groupID := values.Get("group_id").String()
+	return true, groupID
 }
 
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
