@@ -121,6 +121,7 @@ type InfoForKafkaProducer struct {
 	GroupID    string `json:"group_id"`
 	PersonID   string `json:"person_id"`
 	CapturedAt int64  `json:"captured_at"`
+	EventID    uint   `json:"event_id"`
 }
 
 func mallInfoHandler(values []byte) {
@@ -155,7 +156,7 @@ func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
 	log.Println("URL", titanParams.identificationURL)
-	response, _ := http.PostForm(titanParams.identificationURL, url.Values{
+	response, err := http.PostForm(titanParams.identificationURL, url.Values{
 		"api_id":     {info.ApiID},
 		"api_secret": {info.ApiSecret},
 		"face_id":    {info.FaceID},
@@ -163,23 +164,19 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 		"top":        {"20"},
 	})
 	log.Println("response", response.StatusCode)
-	//if err != nil {
-	//	return false
-	//}
+	if err != nil {
+		return false
+	}
 	defer response.Body.Close()
 
-	var values interface{}
+	var values = make(map[string]interface{})
 	responseByte, _ := ioutil.ReadAll(response.Body)
 	if err := json.Unmarshal(responseByte, &values); err != nil {
 		return false
 	}
 	log.Println("titan values", values)
 	// todo: fix it if status is not ok
-	var personIDs []string
-	for _, value := range values.(titan.CandidateData).Candidates {
-		personIDs = append(personIDs, value.PersonID)
-	}
-	if ok := personIDHandler(group.ID, info.PersonID, personIDs, info.CapturedAt); !ok {
+	if ok := personIDHandler(info.EventID, group.ID, info.PersonID, values, info.CapturedAt); !ok {
 		return false
 	}
 	return true
@@ -193,20 +190,38 @@ type result struct {
 
 type results []result
 
-func personIDHandler(groupID uint, personUUID string, personIDs []string, capturedAt int64) bool {
-	personIDString := strings.Join(personIDs, ",")
-	now := time.Now()
-	right := now.Format("2006-01-02 15:04:05")
-	left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
-	sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN %s AND %s ORDER BY capture_at desc`,
-		personIDString, left, right)
+func personIDHandler(eventID uint, groupID uint, personUUID string, values map[string]interface{}, capturedAt int64) bool {
+	if values["status"].(string) != "ok" {
+		var onePerson models.FrequentCustomerPeople
+		onePerson.PersonID = personUUID
+		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
+		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
+		onePerson.Hour = hour
+		onePerson.Frequency = 0
+		onePerson.Interval = 0
+		onePerson.FrequentCustomerGroupID = groupID
+		onePerson.IsFrequentCustomer = false
+		onePerson.EventID = eventID
+		database.POSTGRES.Save(&onePerson)
+		workers.MallCountFrequentCustomerHandler(onePerson, groupID, capturedAt)
+		return true
+	} else {
+		var personIDs []string
+		for _, value := range values["candidates"].(titan.CandidateData).Candidates {
+			personIDs = append(personIDs, value.PersonID)
+		}
+		personIDString := strings.Join(personIDs, ",")
+		now := time.Now()
+		right := now.Format("2006-01-02 15:04:05")
+		left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
+		sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN %s AND %s ORDER BY capture_at desc`,
+			personIDString, left, right)
 
-	var resultsValues results
+		var resultsValues results
 
-	database.POSTGRES.Raw(sql).Scan(&resultsValues)
+		database.POSTGRES.Raw(sql).Scan(&resultsValues)
 
-	//personID
-	{
+		//personID
 		var onePerson models.FrequentCustomerPeople
 		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
 		if dbError := database.POSTGRES.Where("person_id = ? AND hour = ?", personUUID, hour).First(&onePerson).Error; dbError != nil {
@@ -216,6 +231,7 @@ func personIDHandler(groupID uint, personUUID string, personIDs []string, captur
 				Date:                    utils.CurrentDate(time.Unix(capturedAt, 0)),
 				Hour:                    hour,
 				Frequency:               uint(len(resultsValues)),
+				EventID:                 eventID,
 			}
 			if len(resultsValues) == 0 {
 				onePerson.Interval = 0 // 新客，间隔为 0
@@ -230,7 +246,6 @@ func personIDHandler(groupID uint, personUUID string, personIDs []string, captur
 		}
 		workers.MallCountFrequentCustomerHandler(onePerson, groupID, capturedAt)
 	}
-
 	return true
 }
 
@@ -249,6 +264,6 @@ func storeInfoHandler(values []byte) {
 		return
 	}
 
-	//workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
+	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt)
 
 }
