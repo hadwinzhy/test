@@ -12,10 +12,11 @@ import (
 	"siren/configs"
 	"siren/models"
 	"siren/pkg/database"
-	"siren/pkg/titan"
 	"siren/pkg/utils"
 	"strings"
 	"time"
+
+	"github.com/tidwall/gjson"
 
 	"siren/src/workers"
 
@@ -69,7 +70,7 @@ func consumerInit() {
 func CountFrequentConsumer() {
 	consumerInit()
 	go MallCountFrequentConsumerParams.StartConsumer()
-	StoreCountFrequentConsumerParams.StartConsumer()
+	//StoreCountFrequentConsumerParams.StartConsumer()
 }
 
 func (params *CountFrequentConsumerParamsType) StartConsumer() {
@@ -171,15 +172,12 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 	}
 	defer response.Body.Close()
 
-	var values = make(map[string]interface{})
 	responseByte, _ := ioutil.ReadAll(response.Body)
-	if err := json.Unmarshal(responseByte, &values); err != nil {
-		return false
-	}
-	log.Println("titan values", values)
+
+	log.Println("titan values", responseByte)
 	// todo: fix it if status is not ok
 	if info.CompanyID != 0 {
-		if ok := personIDHandler(info.EventID, group.ID, info.PersonID, values, info.CapturedAt); !ok {
+		if ok := personIDHandler(info.EventID, group.ID, info.PersonID, responseByte, info.CapturedAt); !ok {
 			return false
 		}
 	}
@@ -195,8 +193,9 @@ type result struct {
 
 type results []result
 
-func personIDHandler(eventID uint, groupID uint, personUUID string, values map[string]interface{}, capturedAt int64) bool {
-	if values["status"].(string) != "ok" {
+func personIDHandler(eventID uint, groupID uint, personUUID string, values []byte, capturedAt int64) bool {
+	valuesJson := gjson.ParseBytes(values)
+	if valuesJson.Get("status").String() != "ok" {
 		var onePerson models.FrequentCustomerPeople
 		onePerson.PersonID = personUUID
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
@@ -212,8 +211,8 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values map[s
 		return true
 	} else {
 		var personIDs []string
-		for _, value := range values["candidates"].(titan.CandidateData).Candidates {
-			personIDs = append(personIDs, value.PersonID)
+		for _, i := range valuesJson.Get("candidates").Array() {
+			personIDs = append(personIDs, i.Get("person_id").String())
 		}
 		personIDString := strings.Join(personIDs, ",")
 		now := time.Now()
