@@ -35,6 +35,7 @@ var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 
 var titanParams struct {
 	identificationURL string
+	groupCreateURL    string
 }
 
 var ruleNumber struct {
@@ -61,7 +62,7 @@ func consumerInit() {
 
 	// todo: titan faces/identification
 	titanParams.identificationURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/faces/identification")
-
+	titanParams.groupCreateURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/groups/create")
 	// todo: rule number
 	ruleNumber.high = 3
 	ruleNumber.low = 2
@@ -115,11 +116,7 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 
 type InfoForKafkaProducer struct {
 	CompanyID  uint   `json:"company_id"`
-	ShopID     uint   `json:"shop_id"`
-	ApiID      string `json:"api_id"`
-	ApiSecret  string `json:"api_secret"`
 	FaceID     string `json:"face_id"`
-	GroupID    string `json:"group_id"`
 	PersonID   string `json:"person_id"`
 	CapturedAt int64  `json:"captured_at"`
 	EventID    uint   `json:"event_id"`
@@ -151,19 +148,44 @@ func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
 			return false, nil
 		}
+		if ok := titanAddGroup(oneGroup.GroupUUID, fmt.Sprintf("%d_回头客", oneGroup.CompanyID)); !ok {
+			return false, nil
+		}
+
 	}
 	return true, &oneGroup
 }
 
+func titanAddGroup(groupUUID string, name string) bool {
+	apiID := configs.FetchFieldValue("TitanAPIID")
+	apiSecret := configs.FetchFieldValue("TitanAPISecret")
+	response, err := http.PostForm(titanParams.groupCreateURL, url.Values{
+		"api_id":     {apiID},
+		"api_secret": {apiSecret},
+		"group_id":   {groupUUID},
+		"name":       {name},
+	})
+	if err != nil {
+		log.Println("create group fail")
+		return false
+	}
+	defer response.Body.Close()
+	content, _ := ioutil.ReadAll(response.Body)
+	values := gjson.ParseBytes(content)
+	if values.Get("status").String() != "ok" {
+		log.Println("status is not ok, create group fail")
+		return false
+	}
+	return true
+}
+
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
 	log.Println("URL", titanParams.identificationURL)
-	info.ApiID = configs.FetchFieldValue("TitanAPIID")
-	info.ApiSecret = configs.FetchFieldValue("TitanAPISecret")
 	response, err := http.PostForm(titanParams.identificationURL, url.Values{
-		"api_id":     {info.ApiID},
-		"api_secret": {info.ApiSecret},
+		"api_id":     {configs.FetchFieldValue("TitanAPIID")},
+		"api_secret": {configs.FetchFieldValue("TitanAPISecret")},
 		"face_id":    {info.FaceID},
-		"group_id":   {info.GroupID},
+		"group_id":   {group.GroupUUID},
 		"top":        {"20"},
 	})
 	log.Println("response", response.StatusCode)
