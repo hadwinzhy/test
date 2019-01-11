@@ -43,9 +43,15 @@ func (form *FrequentCustomerRecordParams) Normalize() {
 	form.FromToParam.Normalize()
 }
 
+// 需要传company shop params 保证权限
+type CompanyShopParams struct {
+	CompanyID uint `form:"company_id"`
+	ShopID    uint `form:"shop_id"`
+}
+
 type FrequentCustomerRecordDetailParams struct {
 	controllers.PaginationParam
-	ShopID uint `form:"shop_id"`
+	CompanyShopParams
 }
 
 type SingleEventRecord struct {

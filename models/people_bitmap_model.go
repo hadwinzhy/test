@@ -34,6 +34,7 @@ type FrequentCustomerPeople struct {
 	IsFrequentCustomer      bool      `gorm:"type:bool"`
 	EventID                 uint      `gorm:"type:integer"`
 	Event                   Event
+	FrequentCustomerGroup   FrequentCustomerGroup
 
 	customerType string // 隐藏字段，类型
 }

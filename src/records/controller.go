@@ -199,7 +199,7 @@ func RecordsListHandler(c *gin.Context) {
 	c.JSON(200, list)
 }
 
-func fetchFreuqentCustomerPerson(c *gin.Context) (models.FrequentCustomerPeople, *errors.Error) {
+func fetchFreuqentCustomerPerson(c *gin.Context, form CompanyShopParams) (models.FrequentCustomerPeople, *errors.Error) {
 	var result models.FrequentCustomerPeople
 	fcID := c.Param("id")
 	fcIDInt, err := strconv.Atoi(fcID)
@@ -208,10 +208,15 @@ func fetchFreuqentCustomerPerson(c *gin.Context) (models.FrequentCustomerPeople,
 		return result, &structedErr
 	}
 
-	database.POSTGRES.Preload("Event").First(&result, fcIDInt)
+	database.POSTGRES.Preload("FrequentCustomerGroup").Preload("Event").First(&result, fcIDInt)
 
 	if result.ID == 0 {
 		structedErr := errors.MakeNotFoundError("未找到对应回头客")
+		return result, &structedErr
+	}
+
+	if result.FrequentCustomerGroup.CompanyID != form.CompanyID {
+		structedErr := errors.MakeInvalidaParamsError("没有操作回头客的权限")
 		return result, &structedErr
 	}
 
@@ -219,7 +224,12 @@ func fetchFreuqentCustomerPerson(c *gin.Context) (models.FrequentCustomerPeople,
 }
 
 func RecordDetailHandler(c *gin.Context) {
-	person, errPtr := fetchFreuqentCustomerPerson(c)
+	var form CompanyShopParams
+	if err := controllers.CheckRequestQuery(c, &form); err != nil {
+		return
+	}
+
+	person, errPtr := fetchFreuqentCustomerPerson(c, form)
 	if errPtr != nil {
 		errors.ResponseError(c, *errPtr)
 		return
@@ -235,14 +245,14 @@ func RecordDetailHandler(c *gin.Context) {
 }
 
 func RecordDetailListHandler(c *gin.Context) {
-	person, errPtr := fetchFreuqentCustomerPerson(c)
-	if errPtr != nil {
-		errors.ResponseError(c, *errPtr)
+	var form FrequentCustomerRecordDetailParams
+	if err := controllers.CheckRequestQuery(c, &form); err != nil {
 		return
 	}
 
-	var form FrequentCustomerRecordDetailParams
-	if err := controllers.CheckRequestQuery(c, &form); err != nil {
+	person, errPtr := fetchFreuqentCustomerPerson(c, form.CompanyShopParams)
+	if errPtr != nil {
+		errors.ResponseError(c, *errPtr)
 		return
 	}
 
