@@ -212,13 +212,13 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 	} else {
 		var personIDs []string
 		for _, i := range valuesJson.Get("candidates").Array() {
-			personIDs = append(personIDs, i.Get("person_id").String())
+			personIDs = append(personIDs, fmt.Sprintf("`%s`", i.Get("person_id").String()))
 		}
 		personIDString := strings.Join(personIDs, ",")
 		now := time.Now()
 		right := now.Format("2006-01-02 15:04:05")
 		left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
-		sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN %s AND %s ORDER BY capture_at desc`,
+		sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN '%s' AND '%s' group by person_id ORDER BY day desc`,
 			personIDString, left, right)
 
 		var resultsValues results
