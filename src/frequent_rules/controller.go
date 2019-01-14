@@ -61,16 +61,8 @@ func GetAllFrequentRulesHandler(context *gin.Context) {
 	log.Println("params in siren", params)
 	var results models.FrequentCustomerRules
 	if dbError := database.POSTGRES.Where("company_id = ?", params).Find(&results).Error; len(results) == 0 || dbError != nil {
-		err := &errors.Error{
-			ErrorCode: errors.ErrorCode{
-				HTTPStatus: 400,
-				Code:       400,
-				Title:      "record not found",
-				TitleZH:    "记录未找到",
-			},
-			Detail: "记录未找到",
-		}
-		errors.ResponseError(context, *err)
+		var frequency models.FrequentCustomerRule
+		MakeResponse(context, http.StatusOK, frequency.ReadableRule())
 		return
 	}
 	var resultsSerializer []models.FrequentCustomerRuleBasicSerializer
