@@ -274,7 +274,7 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 	} else {
 		var personIDs []string
 		for _, i := range valuesJson.Get("candidates").Array() {
-			personIDs = append(personIDs, fmt.Sprintf("`%s`", i.Get("person_id").String()))
+			personIDs = append(personIDs, fmt.Sprintf("'%s'", i.Get("person_id").String()))
 		}
 		personIDString := strings.Join(personIDs, ",")
 		now := time.Now()
