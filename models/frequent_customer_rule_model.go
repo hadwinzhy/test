@@ -29,18 +29,13 @@ type FrequentCustomerRuleSerializer []rulePair
 
 var lf = []rulePair{
 	rulePair{
-		From: 1,
-		To:   2,
+		From: 2,
+		To:   3,
 		Type: "low",
 	},
 }
 
 var hf = []rulePair{
-	rulePair{
-		From: 3,
-		To:   3,
-		Type: "high",
-	},
 	rulePair{
 		From: 4,
 		To:   4,
@@ -53,6 +48,11 @@ var hf = []rulePair{
 	},
 	rulePair{
 		From: 6,
+		To:   6,
+		Type: "high",
+	},
+	rulePair{
+		From: 7,
 		To:   30,
 		Type: "high",
 	},
