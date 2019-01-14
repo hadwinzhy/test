@@ -4,8 +4,6 @@ LABEL maintainer="siyu.ni@readsense.cn"
 
 WORKDIR /go/src/siren
 
-ENV GIN_MODE release
-
 EXPOSE 8080
 
 VOLUME [ "/go/src/siren/logs" ]
