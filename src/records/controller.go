@@ -305,7 +305,7 @@ func RecordDetailListHandler(c *gin.Context) {
 
 func RecordDetailMarkHandler(c *gin.Context) {
 	var form FrequentCustomerRecordMarkParams
-	if err := controllers.CheckRequestQuery(c, &form); err != nil {
+	if err := controllers.CheckRequestBody(c, &form); err != nil {
 		return
 	}
 
