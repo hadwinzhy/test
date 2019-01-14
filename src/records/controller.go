@@ -13,9 +13,11 @@ import (
 func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCustomerRecord {
 	result := make([]FrequentCustomerRecord, len(peopleList))
 	var shopIDSlice []uint
+	var personIDSlice []string
 
 	for i, people := range peopleList {
 		shopIDSlice = append(shopIDSlice, people.Event.ShopID)
+		personIDSlice = append(personIDSlice, people.PersonID)
 		result[i] = FrequentCustomerRecord{
 			FrequentCustomerPersonID: people.ID,
 			FirstCaptureURL:          people.Event.OriginalFace,
@@ -29,6 +31,7 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 			DeviceName:               people.Event.DeviceName,
 			Frequency:                people.Frequency,
 			Note:                     "", // 要根据person_id对应的去取，作标记的时候再做
+			personID:                 people.PersonID,
 		}
 	}
 
@@ -47,6 +50,24 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 
 		for i := range result {
 			result[i].ShopName = shopIDMap[result[i].ShopID]
+		}
+	}
+
+	// manually load mark
+	if len(personIDSlice) > 0 {
+		personIDMap := make(map[string]models.FrequentCustomerMark)
+
+		var marks []models.FrequentCustomerMark
+
+		database.POSTGRES.Where("person_id in (?)", personIDSlice).Find(&marks)
+
+		for i := range marks {
+			personIDMap[marks[i].PersonID] = marks[i]
+		}
+
+		for i := range result {
+			result[i].Note = personIDMap[result[i].personID].Note
+			result[i].Name = personIDMap[result[i].personID].Name
 		}
 	}
 
@@ -178,6 +199,21 @@ func recordDetailListProcessor(
 	return results, paginations, nil
 }
 
+func recordDetailMarkProcessor(
+	people models.FrequentCustomerPeople,
+	form FrequentCustomerRecordMarkParams,
+) (models.FrequentCustomerMark, *errors.Error) {
+	var mark models.FrequentCustomerMark
+	database.POSTGRES.FirstOrInit(&mark, models.FrequentCustomerMark{PersonID: people.PersonID})
+
+	mark.Name = form.Name
+	mark.Note = form.Note
+
+	database.POSTGRES.Save(&mark)
+
+	return mark, nil
+}
+
 func RecordsListHandler(c *gin.Context) {
 	var form FrequentCustomerRecordParams
 
@@ -265,4 +301,25 @@ func RecordDetailListHandler(c *gin.Context) {
 
 	controllers.SetPaginationToHeaderByStruct(c, paginations)
 	c.JSON(200, results)
+}
+
+func RecordDetailMarkHandler(c *gin.Context) {
+	var form FrequentCustomerRecordMarkParams
+	if err := controllers.CheckRequestQuery(c, &form); err != nil {
+		return
+	}
+
+	person, errPtr := fetchFreuqentCustomerPerson(c, form.CompanyShopParams)
+	if errPtr != nil {
+		errors.ResponseError(c, *errPtr)
+		return
+	}
+
+	mark, errPtr := recordDetailMarkProcessor(person, form)
+	if errPtr != nil {
+		errors.ResponseError(c, *errPtr)
+		return
+	}
+
+	c.JSON(200, mark)
 }

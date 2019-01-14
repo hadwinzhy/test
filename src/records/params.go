@@ -25,6 +25,7 @@ type FrequentCustomerRecord struct {
 	DeviceName               string    `json:"device_name"`
 	Frequency                uint      `json:"frequency"`
 	Note                     string    `json:"note"`
+	personID                 string
 }
 
 func (form *FrequentCustomerRecordParams) Normalize() {
@@ -62,4 +63,10 @@ type SingleEventRecord struct {
 	ShopName        string    `json:"shop_name"`
 	DeviceID        uint      `json:"device_id"`
 	DeviceName      string    `json:"device_name"`
+}
+
+type FrequentCustomerRecordMarkParams struct {
+	Name string `json:"name"`
+	Note string `json:"note"`
+	CompanyShopParams
 }

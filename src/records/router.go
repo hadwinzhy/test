@@ -7,4 +7,6 @@ func Register(r *gin.RouterGroup) {
 	r.GET("/records/:id", RecordDetailHandler)
 
 	r.GET("/records/:id/events", RecordDetailListHandler)
+
+	r.POST("/records/:id/mark", RecordDetailMarkHandler)
 }
