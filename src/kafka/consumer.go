@@ -27,7 +27,7 @@ type CountFrequentConsumerParamsType struct {
 	brokers []string
 	groupID string
 	topics  []string
-	handler func([]byte)
+	handler func([]byte, []byte)
 }
 
 var MallCountFrequentConsumerParams CountFrequentConsumerParamsType
@@ -103,7 +103,7 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 		case msg, ok := <-consumer.Messages():
 			if ok {
 				fmt.Fprintf(os.Stdout, "%s/%d/%d\t%s\t%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
-				params.handler(msg.Value)
+				params.handler(msg.Key, msg.Value)
 				consumer.MarkOffset(msg, "") // mark message as processed
 			}
 		case <-signals:
@@ -122,7 +122,7 @@ type InfoForKafkaProducer struct {
 	PersonID  string `json:"person_id"`
 }
 
-func mallInfoHandler(values []byte) {
+func mallInfoHandler(key []byte, values []byte) {
 	// step one: titan
 	// step two: database event by person_id
 	// step three : count and save into database
@@ -235,7 +235,7 @@ type StoreInfo struct {
 	EventID   uint   `json:"event_id"`
 }
 
-func storeInfoHandler(values []byte) {
+func storeInfoHandler(key []byte, values []byte) {
 
 	var info StoreInfo
 	if err := json.Unmarshal(values, &info); err != nil {
@@ -243,6 +243,11 @@ func storeInfoHandler(values []byte) {
 		return
 	}
 
-	workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt, info.EventID)
+	switch string(key) {
+	case "remove":
+		workers.RemoveFrequentCustomerHandler(info.PersonID)
+	default:
+		workers.StoreFrequentCustomerHandler(info.CompanyID, info.ShopID, info.PersonID, info.CaptureAt, info.EventID)
+	}
 
 }

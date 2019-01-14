@@ -181,3 +181,11 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 		updateFrequentCustomerHighTimeTable(fcGroup.ID, today, captureAt)
 	}
 }
+
+func RemoveFrequentCustomerHandler(personID string) {
+	var people []models.FrequentCustomerPeople
+
+	if personID != "" {
+		database.POSTGRES.Where("person_id = ?", personID).Delete(&people) // 查看回头客列表里就没有了
+	}
+}
