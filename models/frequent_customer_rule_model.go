@@ -18,9 +18,9 @@ type FrequentCustomerRule struct {
 type FrequentCustomerRules []FrequentCustomerRule
 
 type ReadableFrequencyRule struct {
-	LowFrequency  []rulePair
-	HighFrequency []rulePair
-	Limit         uint
+	LowFrequency  []rulePair `json:"low_frequency"`
+	HighFrequency []rulePair `json:"high_frequency"`
+	Limit         uint       `json:"limit"`
 }
 
 type rulePair struct {
