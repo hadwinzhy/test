@@ -63,7 +63,7 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	}
 	var lowHigh models.FrequentCustomerPeoples
 	queryLowHigh.Find(&lowHigh)
-	var lowHighResult []*models.OneStatic
+	var lowHighResult []models.OneStatic
 	lowHighResult = lowHigh.FrequentMonthStatic(rules)
 
 	var allResult models.FrequentCount

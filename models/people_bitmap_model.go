@@ -136,36 +136,40 @@ type FrequentCount struct {
 	Vitality map[string]interface{} `json:"vitality"`
 }
 
-func listIntervalFrequent() [4]*OneStatic {
-	var results [4]*OneStatic
-	results[0] = &OneStatic{
-		From:  1,
-		To:    3,
-		Type:  "",
-		Count: 0,
+func listIntervalFrequent() [4]OneStatic {
+	var results [4]OneStatic
+	results[0] = OneStatic{
+		From:       1,
+		To:         3,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
 	}
-	results[1] = &OneStatic{
-		From:  4,
-		To:    7,
-		Type:  "",
-		Count: 0,
+	results[1] = OneStatic{
+		From:       4,
+		To:         7,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
 	}
-	results[2] = &OneStatic{
-		From:  8,
-		To:    15,
-		Type:  "",
-		Count: 0,
+	results[2] = OneStatic{
+		From:       8,
+		To:         15,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
 	}
-	results[3] = &OneStatic{
-		From:  16,
-		Type:  "",
-		To:    30,
-		Count: 0,
+	results[3] = OneStatic{
+		From:       16,
+		Type:       "",
+		To:         30,
+		Count:      0,
+		Proportion: "0%",
 	}
 	return results
 }
 
-func (ff FrequentCustomerPeoples) Activities() [4]*OneStatic {
+func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
 	results := listIntervalFrequent()
 	if len(ff) == 0 {
 		return results
@@ -190,6 +194,7 @@ func (ff FrequentCustomerPeoples) Activities() [4]*OneStatic {
 	}
 	results[0].Count = onePhase
 	results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+
 	log.Println("onePhase", onePhase, counts)
 
 	results[1].Count = twoPhase
@@ -214,62 +219,72 @@ type OneStatic struct {
 	Proportion string `json:"proportion"`
 }
 
-func listStaticFrequent(rule FrequentCustomerRule) []*OneStatic {
-	var results []*OneStatic
+func listStaticFrequent(rule FrequentCustomerRule) []OneStatic {
+
+	var results []OneStatic
 	ruleSerializer := rule.BasicSerializer()
+	if ruleSerializer.ID == 0 {
+		ruleSerializer.LowFrequency = rule.ReadableRule().LowFrequency
+		ruleSerializer.HighFrequency = rule.ReadableRule().HighFrequency
+	}
+
 	for _, i := range ruleSerializer.LowFrequency {
-		var one *OneStatic
-		one = &OneStatic{
-			From:  i.From,
-			To:    i.To,
-			Type:  i.Type,
-			Count: 0,
+		var one OneStatic
+		one = OneStatic{
+			From:       i.From,
+			To:         i.To,
+			Type:       i.Type,
+			Count:      0,
+			Proportion: "0%",
 		}
 		results = append(results, one)
 	}
 	for _, j := range ruleSerializer.HighFrequency {
-		var one *OneStatic
-		one = &OneStatic{
-			From:  j.From,
-			Type:  j.Type,
-			To:    j.To,
-			Count: 0,
+		var one OneStatic
+		one = OneStatic{
+			From:       j.From,
+			Type:       j.Type,
+			To:         j.To,
+			Count:      0,
+			Proportion: "0%",
 		}
 		results = append(results, one)
 	}
 	return results
 }
 
-func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []*OneStatic {
+func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []OneStatic {
 	manyStatics := listStaticFrequent(frequentRule) // 高低频表
-	if len(ff) == 0 {
-		return manyStatics
-	}
+	//log.Println(len(ff), manyStatics)
+	//if len(ff) == 0 {
+	//	return manyStatics
+	//}
 	for _, f := range ff {
-		getFrequentCount(f.Frequency, manyStatics)
+		manyStatics = getFrequentCount(f.Frequency, manyStatics)
 	}
-	getFrequentProportion(len(ff), manyStatics)
+	manyStatics = getFrequentProportion(len(ff), manyStatics)
 	return manyStatics
 
 }
 
-func getFrequentCount(frequent uint, many []*OneStatic) []*OneStatic {
+func getFrequentCount(frequent uint, many []OneStatic) []OneStatic {
 
-	for _, i := range many {
-		if frequent > i.From && frequent <= i.To {
-			i.Count += 1
+	results := many
+	for index, i := range results {
+		if frequent >= i.From && frequent <= i.To { // 闭区间，必须这么做
+			results[index].Count += 1
 		}
 	}
-	return many
+	return results
 }
 
-func getFrequentProportion(length int, many []*OneStatic) []*OneStatic {
+func getFrequentProportion(length int, many []OneStatic) []OneStatic {
 	if length == 0 {
 		return many
 	}
-	for _, i := range many {
-		log.Println(i, length)
-		i.Proportion = strconv.FormatFloat(float64(i.Count)/float64(length)*100, 'f', 1, 32) + "%"
+	results := many
+	for index, i := range results {
+		results[index].Proportion = strconv.FormatFloat(float64(i.Count)/float64(length)*100, 'f', 1, 32) + "%"
 	}
-	return many
+	return results
 }
