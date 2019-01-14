@@ -92,7 +92,7 @@ func (person *FrequentCustomerPeople) UpdateBitMap(personID string, today time.T
 
 // UpdateValueWithBitMap 根据bitMap，person的数据得到更新
 func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCustomerPeopleBitMap) {
-	person.Frequency = uint(strings.Count(bitMap.BitMap, "1") - 1)
+	person.Frequency = uint(strings.Count(bitMap.BitMap, "1"))
 	lastIndex := strings.LastIndex(bitMap.BitMap[:len(bitMap.BitMap)-1], "1")
 	if lastIndex != -1 {
 		person.Interval = uint(31 - lastIndex)
@@ -108,7 +108,7 @@ func (person *FrequentCustomerPeople) GetType() string {
 		return person.customerType
 	}
 
-	if person.Frequency == 0 {
+	if person.Frequency <= 1 { // 一次以内就不算回头客
 		person.customerType = FREQUENT_CUSTOMER_TYPE_NEW
 	} else {
 		// TODO: 根据公司获取高频规则，现在是默认规则
