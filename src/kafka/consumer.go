@@ -232,7 +232,7 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
 		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
 		onePerson.Hour = hour
-		onePerson.Frequency = 0
+		onePerson.Frequency = 1 //  这次来的，加1
 		onePerson.Interval = 0
 		onePerson.FrequentCustomerGroupID = groupID
 		onePerson.IsFrequentCustomer = false
@@ -265,7 +265,7 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 				FrequentCustomerGroupID: groupID,
 				Date:                    utils.CurrentDate(time.Unix(capturedAt, 0)),
 				Hour:                    hour,
-				Frequency:               uint(len(resultsValues)),
+				Frequency:               uint(len(resultsValues)) + 1, // 算上这次 +1
 				EventID:                 eventID,
 			}
 			if len(resultsValues) == 0 {

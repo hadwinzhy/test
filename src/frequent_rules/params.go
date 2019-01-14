@@ -2,9 +2,8 @@ package frequent_rules
 
 import (
 	"encoding/json"
+	"log"
 	"siren/pkg/controllers/errors"
-
-	"qiniupkg.com/x/log.v7"
 
 	"github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -27,8 +26,86 @@ func (one OneRule) IsSuitable() bool {
 	return one.To >= one.From
 }
 
+// count
+func (one OneRule) Count() int {
+	return one.To - one.From + 1
+}
+
+// postRules count should be  equal 30
+func (rule PostRules) AllCount() bool {
+	var count int
+	for index, i := range rule.LowRule {
+		if index == 0 {
+			if i.From < 2 {
+				return false
+			}
+			count += i.To
+		} else {
+			count += i.Count()
+		}
+	}
+	for _, j := range rule.HighRule {
+		count += j.Count()
+	}
+	log.Println("count", count)
+	if count == 30 {
+		return true
+	}
+	return false
+
+}
+
+// postRules
+func (rule PostRules) InclusiveRange() bool {
+	var numbers []int
+	for _, i := range rule.LowRule {
+		numbers = append(numbers, i.From)
+		numbers = append(numbers, i.To)
+	}
+	for _, j := range rule.HighRule {
+		numbers = append(numbers, j.From)
+		numbers = append(numbers, j.To)
+	}
+
+	var numberCount = make(map[int]int)
+	for _, k := range numbers {
+		if numberCount[k] != 0 {
+			numberCount[k]++
+		} else {
+			numberCount[k] = 1
+		}
+		log.Println("map", numberCount)
+		if numberCount[k] > 1 {
+			return false
+		}
+	}
+	return true
+}
+
 // lowRule and highRule should be suit
 func (rule PostRules) IsSuitableParam() (bool, *errors.Error) {
+	if !rule.InclusiveRange() {
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "is not inclusive range",
+				TitleZH:    "高低频中存在不是闭区间的集合",
+			},
+			Detail: "高低频规则中存在不是闭区间的集合",
+		}
+	}
+	if !rule.AllCount() {
+		return false, &errors.Error{
+			ErrorCode: errors.ErrorCode{
+				HTTPStatus: 400,
+				Code:       400,
+				Title:      "all count of rules should be equal 30",
+				TitleZH:    "高低频规则总天数不等于30, 或者低频最小从2开始",
+			},
+			Detail: "高低频规则总天数需满30天, 或者低频最小从2开始",
+		}
+	}
 	if len(rule.LowRule) == 0 || len(rule.HighRule) == 0 {
 		log.Println("error found step zero")
 		return false, &errors.Error{
