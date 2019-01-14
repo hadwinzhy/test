@@ -36,6 +36,7 @@ var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 var titanParams struct {
 	identificationURL string
 	groupCreateURL    string
+	groupAddPerson    string
 }
 
 var ruleNumber struct {
@@ -63,6 +64,7 @@ func consumerInit() {
 	// todo: titan faces/identification
 	titanParams.identificationURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/faces/identification")
 	titanParams.groupCreateURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/groups/create")
+	titanParams.groupAddPerson = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/groups/add_person")
 	// todo: rule number
 	ruleNumber.high = 3
 	ruleNumber.low = 2
@@ -134,6 +136,9 @@ func mallInfoHandler(values []byte) {
 	if ok, group = saveGroupInfo(info.CompanyID); !ok {
 		return
 	}
+	if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
+		return
+	}
 	fetchDataByTitan(group, info)
 
 }
@@ -185,6 +190,32 @@ func titanAddGroup(groupUUID string, name string) (bool, string) {
 	}
 	groupID := values.Get("group_id").String()
 	return true, groupID
+}
+
+func titanGroupAddPerson(groupUUID string, personID string) bool {
+	// 将人加入到组中去
+	apiID := configs.FetchFieldValue("TitanAPIID")
+	apiSecret := configs.FetchFieldValue("TitanAPISecret")
+	response, err := http.PostForm(titanParams.groupAddPerson, url.Values{
+		"api_id":     {apiID},
+		"api_secret": {apiSecret},
+		"group_id":   {groupUUID},
+		"person_id":  {personID},
+	})
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	content, _ := ioutil.ReadAll(response.Body)
+	values := gjson.ParseBytes(content)
+	existsStatus := values.Get("status").Exists()
+	if !existsStatus {
+		return false
+	}
+	if values.Get("status").String() == "ok" {
+		return true
+	}
+	return false
 }
 
 func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
