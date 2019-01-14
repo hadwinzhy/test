@@ -26,7 +26,8 @@ func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID s
 	var person models.FrequentCustomerPeople
 	// var comer comerBasicInfo
 
-	database.POSTGRES.Where("frequent_customer_group_id = ?", group.ID).
+	database.POSTGRES.Preload("FrequentCustomerGroup").
+		Where("frequent_customer_group_id = ?", group.ID).
 		Where("person_id = ?", personID).
 		Where("hour >= ?", today).
 		Where("hour < ?", today.AddDate(0, 0, 1)).

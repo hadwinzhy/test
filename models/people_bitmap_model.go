@@ -111,8 +111,10 @@ func (person *FrequentCustomerPeople) GetType() string {
 	if person.Frequency <= 1 { // 一次以内就不算回头客
 		person.customerType = FREQUENT_CUSTOMER_TYPE_NEW
 	} else {
-		// TODO: 根据公司获取高频规则，现在是默认规则
 		var rule FrequentCustomerRule
+
+		database.POSTGRES.Where("company_id = ?", person.FrequentCustomerGroup.CompanyID).First(&rule)
+
 		limit := rule.ReadableRule().Limit
 
 		if person.Frequency >= limit {
