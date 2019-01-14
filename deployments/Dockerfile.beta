@@ -37,9 +37,13 @@ COPY Gopkg.toml .
 
 COPY Makefile .
 
+COPY main.go .
+
 RUN make install
 
 COPY . .
+
+RUN make install
 
 RUN make beta
 
