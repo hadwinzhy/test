@@ -5,7 +5,9 @@ import (
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
+	"siren/pkg/utils"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -259,6 +261,25 @@ func fetchFreuqentCustomerPerson(c *gin.Context, form CompanyShopParams) (models
 	return result, nil
 }
 
+func fetchFrequentCustomerEvent(c *gin.Context, form CompanyShopParams) (models.Event, *errors.Error) {
+	var result models.Event
+	evID := c.Param("event_id")
+	evIDInt, err := strconv.Atoi(evID)
+	if err != nil {
+		structedErr := errors.MakeInvalidaParamsError("id不为数字")
+		return result, &structedErr
+	}
+
+	database.POSTGRES.First(&result, evIDInt)
+
+	if result.ID == 0 {
+		structedErr := errors.MakeNotFoundError("未找到事件")
+		return result, &structedErr
+	}
+
+	return result, nil
+}
+
 func RecordDetailHandler(c *gin.Context) {
 	var form CompanyShopParams
 	if err := controllers.CheckRequestQuery(c, &form); err != nil {
@@ -322,4 +343,65 @@ func RecordDetailMarkHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, mark)
+}
+
+// RecordEventRemoveHandler 标记“不是TA”
+func RecordEventRemoveHandler(c *gin.Context) {
+	var form CompanyShopParams
+	if err := controllers.CheckRequestBody(c, &form); err != nil {
+		return
+	}
+
+	person, errPtr := fetchFreuqentCustomerPerson(c, form)
+	if errPtr != nil {
+		errors.ResponseError(c, *errPtr)
+		return
+	}
+
+	event, errPtr := fetchFrequentCustomerEvent(c, form)
+	if errPtr != nil {
+		errors.ResponseError(c, *errPtr)
+		return
+	}
+
+	if person.PersonID != event.PersonID {
+		errors.ResponseNotPermitted(c)
+		return
+	}
+
+	event.PersonID = event.PersonID + "x" // 原来的personid是没有x字符的，为了区别和原来的不同
+
+	if err := database.POSTGRES.Save(&event).Error; err != nil {
+		errors.ResponseDBError(c, err.Error())
+		return
+	}
+
+	// 要重新检测有没有同一天的
+	theday := utils.CurrentDate(event.CaptureAt)
+	thedayPlusOne := theday.AddDate(0, 0, 1)
+	var otherEvent models.Event
+	database.POSTGRES.Where("person_id = ?", person.PersonID).Where("capture_at > ?", theday).Where("capture_at < ?", thedayPlusOne).First(&otherEvent)
+
+	// 存在event，不用改， 不存在其他event，更新bitmap, 不更新report
+	if otherEvent.ID == 0 {
+		var bm models.FrequentCustomerPeopleBitMap
+		database.POSTGRES.Preload("FrequentCustomerPeople").Where("person_id = ?", person.PersonID).Order("id desc").First(&bm)
+		if bm.ID > 0 {
+			bitMapDay := utils.CurrentDate(bm.FrequentCustomerPeople.Hour)
+			if bitMapDay.After(theday) {
+				days := bitMapDay.Sub(theday) / (time.Second * 86400)
+				length := len(bm.BitMap)
+				removalPos := length - 1 - int(days)
+
+				bytes := append([]byte(bm.BitMap)[0:removalPos], '0')
+				if removalPos < length-1 {
+					bytes = append(bytes, []byte(bm.BitMap)[removalPos+1:]...)
+				}
+				bm.BitMap = string(bytes)
+				database.POSTGRES.Save(&bm)
+			}
+		}
+	}
+
+	c.JSON(200, event)
 }
