@@ -174,7 +174,6 @@ func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
 	if len(ff) == 0 {
 		return results
 	}
-	counts := len(ff)
 	var (
 		onePhase   uint
 		twoPhase   uint
@@ -192,21 +191,31 @@ func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
 			fourPhase += f.Interval
 		}
 	}
+	counts := onePhase + twoPhase + threePhase + fourPhase
 	results[0].Count = onePhase
-	results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	if counts != 0 {
+		results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
 
 	log.Println("onePhase", onePhase, counts)
 
 	results[1].Count = twoPhase
-	results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	if counts != 0 {
+		results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+
+	}
 	log.Println("twoPhase", twoPhase, counts)
 
 	results[2].Count = threePhase
-	results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	if counts != 0 {
+		results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
 	log.Println("threePhase", threePhase, counts)
 
 	results[3].Count = fourPhase
-	results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	if counts != 0 {
+		results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
 	log.Println("fourPhase", fourPhase, counts)
 	return results
 }
