@@ -342,6 +342,10 @@ func RecordDetailMarkHandler(c *gin.Context) {
 		return
 	}
 
+	if mark.PersonID != "" {
+		database.POSTGRES.Table("customers").Where("person_id = ?", mark.PersonID).Updates(map[string]interface{}{"name": mark.Name, "note": mark.Note})
+	}
+
 	c.JSON(200, mark)
 }
 
