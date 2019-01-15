@@ -117,7 +117,7 @@ func (person *FrequentCustomerPeople) GetType() string {
 
 		limit := rule.ReadableRule().Limit
 
-		if person.Frequency >= limit {
+		if person.Frequency > limit {
 			person.customerType = FREQUENT_CUSTOMER_TYPE_HIGH
 		} else {
 			person.customerType = FREQUENT_CUSTOMER_TYPE_LOW
