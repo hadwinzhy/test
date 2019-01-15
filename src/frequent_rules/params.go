@@ -75,7 +75,7 @@ func (rule PostRules) InclusiveRange() bool {
 			numberCount[k] = 1
 		}
 		log.Println("map", numberCount)
-		if numberCount[k] > 1 {
+		if numberCount[k] > 2 {
 			return false
 		}
 	}
