@@ -262,7 +262,7 @@ func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCusto
 	for _, f := range ff {
 		manyStatics = getFrequentCount(f.Frequency, manyStatics)
 	}
-	manyStatics = getFrequentProportion(len(ff), manyStatics)
+	manyStatics = getFrequentProportion(manyStatics)
 	return manyStatics
 
 }
@@ -274,17 +274,23 @@ func getFrequentCount(frequent uint, many []OneStatic) []OneStatic {
 		if frequent >= i.From && frequent <= i.To { // 闭区间，必须这么做
 			results[index].Count += 1
 		}
+
 	}
 	return results
 }
 
-func getFrequentProportion(length int, many []OneStatic) []OneStatic {
-	if length == 0 {
-		return many
-	}
+func getFrequentProportion(many []OneStatic) []OneStatic {
+
 	results := many
+	var count uint
+	for _, i := range results {
+		count += i.Count
+	}
+	if count == 0 {
+		return results
+	}
 	for index, i := range results {
-		results[index].Proportion = strconv.FormatFloat(float64(i.Count)/float64(length)*100, 'f', 1, 32) + "%"
+		results[index].Proportion = strconv.FormatFloat(float64(i.Count)/float64(count)*100, 'f', 1, 32) + "%"
 	}
 	return results
 }
