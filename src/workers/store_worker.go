@@ -176,6 +176,10 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 		return
 	}
 
+	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
+		go markNameNote(person.EventID, person.PersonID)
+	}
+
 	// 3. 取一下频率规则，判断是不是高频次的人
 	if person.IsHighFrequency() {
 		// 3.1 是的话，根据来的captureAt时间，记到高频表里
@@ -188,5 +192,24 @@ func RemoveFrequentCustomerHandler(personID string) {
 
 	if personID != "" {
 		database.POSTGRES.Where("person_id = ?", personID).Delete(&people) // 查看回头客列表里就没有了
+	}
+}
+
+func markNameNote(eventID uint, personID string) {
+	if personID != "" && eventID != 0 {
+		var event models.Event
+		database.POSTGRES.First(&event, eventID)
+		if event.ID == 0 || event.CustomerID == 0 {
+			return
+		}
+
+		// eventid 和 customerid都不是0
+		var mark models.FrequentCustomerMark
+		database.POSTGRES.Where("person_id = ?", personID).First(&mark)
+		if mark.ID > 0 {
+			database.POSTGRES.Table("customers").
+				Where("id = ?", event.CustomerID).
+				Updates(map[string]interface{}{"name": mark.Name, "note": mark.Note})
+		}
 	}
 }
