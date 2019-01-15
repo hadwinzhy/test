@@ -183,13 +183,13 @@ func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
 	)
 	for _, f := range ff {
 		if f.Interval >= 1 && f.Interval <= 3 {
-			onePhase += f.Frequency
+			onePhase += f.Interval
 		} else if f.Interval >= 4 && f.Interval <= 7 {
-			twoPhase += f.Frequency
+			twoPhase += f.Interval
 		} else if f.Interval >= 8 && f.Interval <= 15 {
-			threePhase += f.Frequency
+			threePhase += f.Interval
 		} else if f.Interval >= 16 {
-			fourPhase += f.Frequency
+			fourPhase += f.Interval
 		}
 	}
 	results[0].Count = onePhase

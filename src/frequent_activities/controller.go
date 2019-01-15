@@ -47,7 +47,7 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	var results models.FrequentCustomerPeoples
 	query := database.POSTGRES.
 		Where("frequent_customer_group_id in (?)", groupIDs).
-		Where("date BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+		Where("hour BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
 	query.Find(&results)
 
 	resultsReport := results.Activities()
@@ -55,7 +55,7 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	beforeMonth, day := monthHandler(params.Date)
 	queryLowHigh := database.POSTGRES.
 		Where("frequent_customer_group_id in (?)", groupIDs).
-		Where("date BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
+		Where("hour BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
 
 	var rules models.FrequentCustomerRule
 	if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&rules).Error; dbError != nil {
