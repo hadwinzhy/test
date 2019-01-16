@@ -2,12 +2,14 @@ package records
 
 import (
 	"siren/pkg/controllers"
+	"siren/pkg/utils"
 	"time"
 )
 
 type FrequentCustomerRecordParams struct {
-	CompanyID uint `form:"company_id" binding:"required"`
-	ShopID    uint `form:"shop_id"`
+	CompanyID uint   `form:"company_id" binding:"required"`
+	ShopID    string `form:"shop_id"`
+	shopIDs   []uint
 	controllers.PaginationParam
 	controllers.FromToParam
 }
@@ -29,6 +31,8 @@ type FrequentCustomerRecord struct {
 }
 
 func (form *FrequentCustomerRecordParams) Normalize() {
+	form.ShopID, form.shopIDs = utils.NumberGroupStringNormalize(form.ShopID)
+
 	if form.Page == 0 {
 		form.Page = 1
 	}

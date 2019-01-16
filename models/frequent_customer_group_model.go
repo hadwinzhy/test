@@ -10,12 +10,12 @@ type FrequentCustomerGroup struct {
 }
 
 // FetchFrequentCustomerGroup获取公司,门店对应的组 因为有可能是门店版的companyID参数，所以返回值是slice
-func FetchFrequentCustomerGroup(companyID uint, shopID uint) []FrequentCustomerGroup {
+func FetchFrequentCustomerGroup(companyID uint, shopIDs []uint) []FrequentCustomerGroup {
 	var results []FrequentCustomerGroup
 	query := database.POSTGRES.Where("company_id = ?", companyID)
 
-	if shopID != 0 {
-		query = query.Where("shop_id = ?", shopID)
+	if len(shopIDs) != 0 {
+		query = query.Where("shop_id in (?)", shopIDs)
 	}
 
 	query.Find(&results)

@@ -51,7 +51,7 @@ func reportOutputMapper(item models.FrequentCustomerReport) DistributionOutput {
 }
 
 func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutput, *errors.Error) {
-	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.ShopID)
+	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.shopIDs)
 	fromTime, toTime := form.GetFromAndToTime()
 
 	var dataItems []models.FrequentCustomerReport

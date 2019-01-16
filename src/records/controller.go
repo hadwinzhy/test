@@ -115,7 +115,7 @@ func eventListMaker(events []models.Event) []SingleEventRecord {
 }
 
 func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerRecord, controllers.PaginationResponse, *errors.Error) {
-	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.ShopID)
+	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.shopIDs)
 
 	var groupIDs []uint
 	for _, group := range fcGroups {
