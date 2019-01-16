@@ -28,7 +28,7 @@ func saveGroupInfo(companyID uint) (bool, *models.FrequentCustomerGroup) {
 			CompanyID: companyID,
 		}
 
-		if ok, groupID = titanAddGroup(oneGroup.GroupUUID, fmt.Sprintf("%d_回头客", oneGroup.CompanyID)); !ok {
+		if ok, groupID = titanAddGroup(utils.GenerateUUID(20), fmt.Sprintf("%d_回头客", oneGroup.CompanyID)); !ok {
 			return false, nil
 		}
 		oneGroup.GroupUUID = groupID
