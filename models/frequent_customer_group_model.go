@@ -4,9 +4,10 @@ import "siren/pkg/database"
 
 type FrequentCustomerGroup struct {
 	BaseModel
-	CompanyID uint   `gorm:"index"`
-	ShopID    uint   `gorm:"index"`
-	GroupUUID string `gorm:"type:varchar(32);"`
+	CompanyID     uint   `gorm:"index"`
+	ShopID        uint   `gorm:"index"`
+	GroupUUID     string `gorm:"type:varchar(32);"`
+	DefaultNumber uint   `gorm:"type:integer"`
 }
 
 // FetchFrequentCustomerGroup获取公司,门店对应的组 因为有可能是门店版的companyID参数，所以返回值是slice

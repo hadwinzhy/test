@@ -26,13 +26,14 @@ type FrequentCustomerPeopleBitMap struct {
 type FrequentCustomerPeople struct {
 	BaseModel
 	FrequentCustomerGroupID uint      `gorm:"index"`
-	PersonID                string    `gorm:"type:varchar(32)"`
+	PersonID                string    `gorm:"type:varchar(32);index"`
 	Date                    time.Time `gorm:"type:date"`
 	Hour                    time.Time `gorm:"type:timestamp with time zone"`
 	Interval                uint      `gorm:"type:integer"`
 	Frequency               uint      `gorm:"type:integer"`
 	IsFrequentCustomer      bool      `gorm:"type:bool"`
 	EventID                 uint      `gorm:"type:integer"`
+	DefaultNumber           uint      `gorm:"type:integer;"`
 	Event                   Event
 	FrequentCustomerGroup   FrequentCustomerGroup
 
@@ -91,7 +92,7 @@ func (person *FrequentCustomerPeople) UpdateBitMap(personID string, today time.T
 }
 
 // UpdateValueWithBitMap 根据bitMap，person的数据得到更新
-func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCustomerPeopleBitMap) {
+func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCustomerPeopleBitMap, group *FrequentCustomerGroup) {
 	person.Frequency = uint(strings.Count(bitMap.BitMap, "1"))
 	lastIndex := strings.LastIndex(bitMap.BitMap[:len(bitMap.BitMap)-1], "1")
 	if lastIndex != -1 {
@@ -100,6 +101,13 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 	} else {
 		person.IsFrequentCustomer = false
 	}
+
+	if person.IsFrequentCustomer {
+		group.DefaultNumber++
+		person.DefaultNumber = group.DefaultNumber
+		database.POSTGRES.Save(group)
+	}
+
 	database.POSTGRES.Save(person)
 }
 

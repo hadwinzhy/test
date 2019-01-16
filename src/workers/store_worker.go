@@ -168,7 +168,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	}
 
 	// 1.2 person里的数据更新
-	person.UpdateValueWithBitMap(&bitMap)
+	person.UpdateValueWithBitMap(&bitMap, &fcGroup)
 
 	// 2. report里的数据更新，记到当天的数据分布表中, 总人数，高频次数，低频次数，新客数，总到访间隔天数，总到访天数
 	err = updateFrequentCustomerReport(&person, fcGroup.ID, today, thisHour)

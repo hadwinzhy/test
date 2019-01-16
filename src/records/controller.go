@@ -1,6 +1,7 @@
 package records
 
 import (
+	"fmt"
 	"siren/models"
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
@@ -23,7 +24,7 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 		result[i] = FrequentCustomerRecord{
 			FrequentCustomerPersonID: people.ID,
 			FirstCaptureURL:          people.Event.OriginalFace,
-			Name:                     "", // 要根据person_id对应的去取，作标记的时候再做
+			Name:                     fmt.Sprintf("回头客%d", people.DefaultNumber), // 要根据person_id对应的去取，作标记的时候再做
 			CaptureAt:                people.Event.CaptureAt,
 			Age:                      people.Event.Age,
 			Gender:                   people.Event.Gender,
@@ -69,19 +70,22 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 
 		for i := range result {
 			result[i].Note = personIDMap[result[i].personID].Note
-			result[i].Name = personIDMap[result[i].personID].Name
+			if personIDMap[result[i].personID].Name != "" {
+				result[i].Name = personIDMap[result[i].personID].Name
+			}
 		}
 	}
 
 	return result
 }
 
-func eventListMaker(events []models.Event) []SingleEventRecord {
-	result := make([]SingleEventRecord, len(events))
+func eventListMaker(allPeople []models.FrequentCustomerPeople) []SingleEventRecord {
+	result := make([]SingleEventRecord, len(allPeople))
 
 	var shopIDSlice []uint
 
-	for i, event := range events {
+	for i, people := range allPeople {
+		event := people.Event
 		shopIDSlice = append(shopIDSlice, event.ShopID)
 		result[i] = SingleEventRecord{
 			ID:              event.ID,
@@ -172,23 +176,20 @@ func recordDetailListProcessor(
 
 	toTime := people.Hour                 // 回头客最后一次抓到的时间
 	fromTime := toTime.AddDate(0, 0, -30) // 30天前
-	var events []models.Event
-	query := database.POSTGRES.Model(&models.Event{}).
-		Where("capture_at >= ?", fromTime).
-		Where("capture_at <= ?", toTime).
-		Where("person_id = ?", people.PersonID)
 
-	if form.ShopID != 0 {
-		query = query.Where("shop_id = ?", form.ShopID)
-	}
+	var allPeople []models.FrequentCustomerPeople
+	query := database.POSTGRES.Model(&allPeople).Preload("Event").
+		Where("hour >= ?", fromTime).
+		Where("hour <= ?", toTime).
+		Where("person_id = ?", people.PersonID)
 
 	var total int
 	query.Count(&total)
 
-	query.Order("capture_at desc").
+	query.Order("hour desc").
 		Limit(form.PerPage).
 		Offset(form.PerPage * (form.Page - 1)).
-		Find(&events)
+		Find(&allPeople)
 
 	paginations = controllers.PaginationResponse{
 		Page:  form.Page,
@@ -196,7 +197,7 @@ func recordDetailListProcessor(
 		Total: total,
 	}
 
-	results := eventListMaker(events)
+	results := eventListMaker(allPeople)
 
 	return results, paginations, nil
 }
