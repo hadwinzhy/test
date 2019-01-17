@@ -2,12 +2,11 @@ package distributions
 
 import (
 	"fmt"
+	"log"
 	"siren/models"
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
-
-	"github.com/qiniu/x/log.v7"
 
 	"github.com/gin-gonic/gin"
 )
