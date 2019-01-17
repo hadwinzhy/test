@@ -52,5 +52,5 @@ production:
   kafka:
     host: "kafka-dev.senseread.com"
     port: "9092"
-    group: "Group_Production"
+    group: "Siren-Production"
     topic: "frequent_customer_production"

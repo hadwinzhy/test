@@ -144,7 +144,6 @@ type StoreInfo struct {
 }
 
 func storeInfoHandler(key []byte, values []byte) {
-
 	var info StoreInfo
 	if err := json.Unmarshal(values, &info); err != nil {
 		log.Println(err)
