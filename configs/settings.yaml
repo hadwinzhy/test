@@ -14,7 +14,7 @@ dev:
     apiid: "9e58754f23d2d55b017c50ecc442cc4c"
     apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
   kafka:
-    host: "47.93.81.180"
+    host: "kafka-dev.senseread.com"
     port: "9092"
     group: "Group_Dev"
     topic: "frequent_customer_dev"
@@ -50,7 +50,7 @@ production:
     apiid: "9e58754f23d2d55b017c50ecc442cc4c"
     apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
   kafka:
-    host: "47.93.81.180"
+    host: "kafka-dev.senseread.com"
     port: "9092"
     group: "Group_Production"
     topic: "frequent_customer_production"
