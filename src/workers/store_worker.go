@@ -107,7 +107,8 @@ func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID
 		&report,
 		models.FrequentCustomerReport{
 			FrequentCustomerGroupID: groupID,
-			Hour: hour,
+			Date:                    today,
+			Hour:                    hour,
 		},
 	)
 
@@ -135,7 +136,7 @@ func updateFrequentCustomerHighTimeTable(groupID uint, today time.Time, captureA
 		&table,
 		models.FrequentCustomerHighTimeTable{
 			FrequentCustomerGroupID: groupID,
-			Date: today,
+			Date:                    today,
 		},
 	)
 

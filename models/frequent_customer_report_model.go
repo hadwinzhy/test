@@ -35,6 +35,8 @@ type FrequentCustomerHighTimeTable struct {
 	PhaseEight              uint      `gorm:"type:integer"`
 }
 
+type FrequentCustomerHighTimeTables []FrequentCustomerHighTimeTable
+
 var hourPhaseMap = map[int]string{
 	8:  "PhaseOne",
 	9:  "PhaseOne",
@@ -81,6 +83,49 @@ func (table *FrequentCustomerHighTimeTable) AddCount(captureAt time.Time) {
 
 	database.POSTGRES.Save(table)
 }
+
+type FrequentCustomerHighTimeTableSerializer struct {
+	ID         uint      `json:"id"`
+	GroupID    uint      `json:"group_id"`
+	Date       time.Time `json:"date"`
+	PhaseOne   uint      `json:"phase_one"`
+	PhaseTwo   uint      `json:"phase_two"`
+	PhaseThree uint      `json:"phase_three"`
+	PhaseFour  uint      `json:"phase_four"`
+	PhaseFive  uint      `json:"phase_five"`
+	PhaseSix   uint      `json:"phase_six"`
+	PhaseSeven uint      `json:"phase_seven"`
+	PhaseEight uint      `json:"phase_eight"`
+}
+
+func (table FrequentCustomerHighTimeTable) BasicSerializer() FrequentCustomerHighTimeTableSerializer {
+	return FrequentCustomerHighTimeTableSerializer{
+		ID:         table.ID,
+		GroupID:    table.FrequentCustomerGroupID,
+		Date:       table.Date,
+		PhaseOne:   table.PhaseOne,
+		PhaseTwo:   table.PhaseTwo,
+		PhaseThree: table.PhaseThree,
+		PhaseFour:  table.PhaseFour,
+		PhaseFive:  table.PhaseFive,
+		PhaseSix:   table.PhaseSix,
+		PhaseSeven: table.PhaseSeven,
+		PhaseEight: table.PhaseEight,
+	}
+}
+
+// func InsertMissing(period string, fromTime time.Time, toTime time.Time, ) ([]ReportEventSerializer, int) {
+// 	duration := utils.GetDurationByPeriod(period)
+// 	var total int
+// 	if period == "month" {
+// 		total = (toTime.Year()-fromTime.Year())*12 + (int(toTime.Month()) - int(fromTime.Month())) + 1
+// 	} else {
+// 		total = GetSubByPeriod(period, fromTime, toTime, duration)
+// 	}
+// 	if total <= 0 {
+// 		return []ReportEventSerializer{}, 0
+// 	}
+// 	result := make([]ReportEventSerializer, total, total+1)
 
 type FrequentCustomerReports []FrequentCustomerReport
 

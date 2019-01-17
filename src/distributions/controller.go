@@ -7,6 +7,8 @@ import (
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
 
+	"github.com/qiniu/x/log.v7"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -126,6 +128,7 @@ func ListDistributionHandler(c *gin.Context) {
 	if err := controllers.CheckRequestQuery(c, &form); err != nil {
 		return
 	}
+	log.Println(form, "form")
 
 	form.Normalize()
 

@@ -3,22 +3,13 @@ package kafka
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"os/signal"
 	"siren/configs"
 	"siren/models"
-	"siren/pkg/database"
-	"siren/pkg/titan"
 
 	"siren/src/workers"
-
-	"siren/utils"
-	"strings"
-	"time"
 
 	"github.com/bsm/sarama-cluster"
 )
@@ -35,6 +26,8 @@ var StoreCountFrequentConsumerParams CountFrequentConsumerParamsType
 
 var titanParams struct {
 	identificationURL string
+	groupCreateURL    string
+	groupAddPerson    string
 }
 
 var ruleNumber struct {
@@ -53,14 +46,16 @@ func consumerInit() {
 	MallCountFrequentConsumerParams.groupID = groupName
 	MallCountFrequentConsumerParams.topics = []string{topic}
 	MallCountFrequentConsumerParams.handler = mallInfoHandler
+
 	StoreCountFrequentConsumerParams.brokers = []string{fmt.Sprintf("%s:%s", host, port)}
 	StoreCountFrequentConsumerParams.groupID = groupName
 	StoreCountFrequentConsumerParams.topics = []string{"store_frequent_customer_" + configs.ENV}
 	StoreCountFrequentConsumerParams.handler = storeInfoHandler
 
 	// todo: titan faces/identification
-	titanParams.identificationURL = fmt.Sprintf("http://" + configs.FetchFieldValue("TitanHOST") + "/faces/identification")
-
+	titanParams.identificationURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/faces/identification")
+	titanParams.groupCreateURL = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/groups/create")
+	titanParams.groupAddPerson = fmt.Sprintf(configs.FetchFieldValue("TitanHOST") + "/groups/add_person")
 	// todo: rule number
 	ruleNumber.high = 3
 	ruleNumber.low = 2
@@ -113,118 +108,31 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 }
 
 type InfoForKafkaProducer struct {
-	CompanyID uint   `json:"company_id"`
-	ShopID    uint   `json:"shop_id"`
-	ApiID     string `json:"api_id"`
-	ApiSecret string `json:"api_secret"`
-	FaceID    string `json:"face_id"`
-	GroupID   string `json:"group_id"`
-	PersonID  string `json:"person_id"`
+	CompanyID  uint   `json:"company_id"`
+	FaceID     string `json:"face_id"`
+	PersonID   string `json:"person_id"`
+	CapturedAt int64  `json:"captured_at"`
+	EventID    uint   `json:"event_id"`
 }
 
 func mallInfoHandler(key []byte, values []byte) {
-	// step one: titan
-	// step two: database event by person_id
-	// step three : count and save into database
-
-	var info interface{}
-	if err := json.Unmarshal(values, info); err != nil {
+	var info InfoForKafkaProducer
+	if err := json.Unmarshal(values, &info); err != nil {
 		log.Println(err)
 		return
 	}
 
 	var group *models.FrequentCustomerGroup
 	var ok bool
-	if ok, group = saveGroupInfo(info.(InfoForKafkaProducer)); !ok {
+	if ok, group = saveGroupInfo(info.CompanyID); !ok {
 		return
 	}
-	fetchDataByTitan(group, info.(InfoForKafkaProducer))
-
-}
-
-// save group
-func saveGroupInfo(info InfoForKafkaProducer) (bool, *models.FrequentCustomerGroup) {
-	var oneGroup models.FrequentCustomerGroup
-	if dbError := database.POSTGRES.Where("company_id = ? AND shop_id = ?", info.CompanyID, info.ShopID).First(&oneGroup).Error; dbError != nil {
-		oneGroup = models.FrequentCustomerGroup{
-			CompanyID: info.CompanyID,
-			ShopID:    info.ShopID,
-			GroupUUID: utils.GenerateUUID(20),
-		}
-		if dbError := database.POSTGRES.Save(&oneGroup).Error; dbError != nil {
-			return false, nil
-		}
+	// todo: personID or faceID?
+	if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
+		return
 	}
-	return true, &oneGroup
-}
+	fetchDataByTitan(group, info)
 
-func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProducer) bool {
-	response, err := http.PostForm(titanParams.identificationURL, url.Values{
-		"api_id":     {info.ApiID},
-		"api_secret": {info.ApiSecret},
-		"face_id":    {info.FaceID},
-		"group_id":   {info.GroupID},
-		"top":        {"20"},
-	})
-
-	if err != nil {
-		return false
-	}
-	defer response.Body.Close()
-
-	var values interface{}
-	responseByte, _ := ioutil.ReadAll(response.Body)
-	if err := json.Unmarshal(responseByte, values); err != nil {
-		return false
-	}
-	var personIDs []string
-	for _, value := range values.(titan.CandidateData).Candidates {
-		personIDs = append(personIDs, value.PersonID)
-	}
-	if ok := personIDHandler(group, info, personIDs); !ok {
-		return false
-	}
-	return true
-
-}
-
-type result struct {
-	PersonID string    `json:"person_id"`
-	Day      time.Time `json:"day"`
-}
-
-type results []result
-
-func personIDHandler(group *models.FrequentCustomerGroup, info InfoForKafkaProducer, personIDs []string) bool {
-	personIDString := strings.Join(personIDs, ",")
-	now := time.Now()
-	right := now.Format("2006-01-02 15:04:05")
-	left := now.AddDate(0, -1, 0).Format("2006-01-02 15:04:05")
-	sql := fmt.Sprintf(`SELECT person_id, date_trunc('day',max(capture_at)) as day FROM events WHERE person_id in (%s) AND capture_at BETWEEN %s AND %s ORDER BY capture_at desc`,
-		personIDString, left, right)
-
-	var resultsValues results
-
-	database.POSTGRES.Raw(sql).Scan(&resultsValues)
-
-	//personID
-	{
-		var onePerson models.FrequentCustomerPeople
-		day, _ := time.Parse("2006-01-02 00:00:00", time.Now().Format("2006-01-02 00:00:00"))
-		if dbError := database.POSTGRES.Where("person_id = ? AND date = ?", info.PersonID, day).First(&onePerson).Error; dbError != nil {
-			onePerson = models.FrequentCustomerPeople{
-				PersonID:                info.PersonID,
-				FrequentCustomerGroupID: group.ID,
-				Date:      day,
-				Interval:  uint(float64(time.Now().Sub(resultsValues[0].Day).Hours()/24) + 1),
-				Frequency: uint(len(resultsValues)),
-			}
-			if dbError := database.POSTGRES.Save(&onePerson).Error; dbError != nil {
-				return false
-			}
-		}
-	}
-	return true
 }
 
 type StoreInfo struct {

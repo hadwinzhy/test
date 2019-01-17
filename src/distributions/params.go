@@ -23,7 +23,7 @@ type valueProportionPair struct {
 type DistributionOutput struct {
 	Date             string              `json:"date"`
 	High             valueProportionPair `json:"high"`
-	Low              valueProportionPair `json:"Low"`
+	Low              valueProportionPair `json:"low"`
 	New              valueProportionPair `json:"new"`
 	AverageInterval  string              `json:"average_interval"`
 	AverageFrequency string              `json:"average_frequency"`

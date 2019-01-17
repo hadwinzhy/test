@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"log"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"strconv"
@@ -137,4 +138,180 @@ func (person *FrequentCustomerPeople) GetType() string {
 
 func (person *FrequentCustomerPeople) IsHighFrequency() bool {
 	return person.GetType() == FREQUENT_CUSTOMER_TYPE_HIGH
+}
+
+type FrequentCustomerPeoples []FrequentCustomerPeople
+
+// frequent handler
+
+type FrequentCount struct {
+	Vitality map[string]interface{} `json:"vitality"`
+}
+
+func listIntervalFrequent() [4]OneStatic {
+	var results [4]OneStatic
+	results[0] = OneStatic{
+		From:       1,
+		To:         3,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
+	}
+	results[1] = OneStatic{
+		From:       4,
+		To:         7,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
+	}
+	results[2] = OneStatic{
+		From:       8,
+		To:         15,
+		Type:       "",
+		Count:      0,
+		Proportion: "0%",
+	}
+	results[3] = OneStatic{
+		From:       16,
+		Type:       "",
+		To:         30,
+		Count:      0,
+		Proportion: "0%",
+	}
+	return results
+}
+
+func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
+	results := listIntervalFrequent()
+	if len(ff) == 0 {
+		return results
+	}
+	var (
+		onePhase   uint
+		twoPhase   uint
+		threePhase uint
+		fourPhase  uint
+	)
+	for _, f := range ff {
+		if f.Interval >= 1 && f.Interval <= 3 {
+			onePhase += f.Interval
+		} else if f.Interval >= 4 && f.Interval <= 7 {
+			twoPhase += f.Interval
+		} else if f.Interval >= 8 && f.Interval <= 15 {
+			threePhase += f.Interval
+		} else if f.Interval >= 16 {
+			fourPhase += f.Interval
+		}
+	}
+	counts := onePhase + twoPhase + threePhase + fourPhase
+	results[0].Count = onePhase
+	if counts != 0 {
+		results[0].Proportion = strconv.FormatFloat(float64(onePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
+
+	log.Println("onePhase", onePhase, counts)
+
+	results[1].Count = twoPhase
+	if counts != 0 {
+		results[1].Proportion = strconv.FormatFloat(float64(twoPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+
+	}
+	log.Println("twoPhase", twoPhase, counts)
+
+	results[2].Count = threePhase
+	if counts != 0 {
+		results[2].Proportion = strconv.FormatFloat(float64(threePhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
+	log.Println("threePhase", threePhase, counts)
+
+	results[3].Count = fourPhase
+	if counts != 0 {
+		results[3].Proportion = strconv.FormatFloat(float64(fourPhase)/float64(counts)*100, 'f', 1, 32) + "%"
+	}
+	log.Println("fourPhase", fourPhase, counts)
+	return results
+}
+
+type OneStatic struct {
+	From       uint   `json:"from"`
+	To         uint   `json:"to"`
+	Type       string `json:"type"`
+	Count      uint   `json:"count"`
+	Proportion string `json:"proportion"`
+}
+
+func listStaticFrequent(rule FrequentCustomerRule) []OneStatic {
+
+	var results []OneStatic
+	ruleSerializer := rule.BasicSerializer()
+	if ruleSerializer.ID == 0 {
+		ruleSerializer.LowFrequency = rule.ReadableRule().LowFrequency
+		ruleSerializer.HighFrequency = rule.ReadableRule().HighFrequency
+	}
+
+	for _, i := range ruleSerializer.LowFrequency {
+		var one OneStatic
+		one = OneStatic{
+			From:       i.From,
+			To:         i.To,
+			Type:       i.Type,
+			Count:      0,
+			Proportion: "0%",
+		}
+		results = append(results, one)
+	}
+	for _, j := range ruleSerializer.HighFrequency {
+		var one OneStatic
+		one = OneStatic{
+			From:       j.From,
+			Type:       j.Type,
+			To:         j.To,
+			Count:      0,
+			Proportion: "0%",
+		}
+		results = append(results, one)
+	}
+	return results
+}
+
+func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []OneStatic {
+	manyStatics := listStaticFrequent(frequentRule) // 高低频表
+	//log.Println(len(ff), manyStatics)
+	//if len(ff) == 0 {
+	//	return manyStatics
+	//}
+	for _, f := range ff {
+		manyStatics = getFrequentCount(f.Frequency, manyStatics)
+	}
+	manyStatics = getFrequentProportion(manyStatics)
+	return manyStatics
+
+}
+
+func getFrequentCount(frequent uint, many []OneStatic) []OneStatic {
+
+	results := many
+	for index, i := range results {
+		if frequent >= i.From && frequent <= i.To { // 闭区间，必须这么做
+			results[index].Count += 1
+		}
+
+	}
+	return results
+}
+
+func getFrequentProportion(many []OneStatic) []OneStatic {
+
+	results := many
+	var count uint
+	for _, i := range results {
+		count += i.Count
+	}
+	if count == 0 {
+		return results
+	}
+	for index, i := range results {
+		results[index].Proportion = strconv.FormatFloat(float64(i.Count)/float64(count)*100, 'f', 1, 32) + "%"
+	}
+	return results
 }

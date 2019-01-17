@@ -10,9 +10,9 @@ dev:
     dbname: "venus_dev"
     sslmode: "disable"
   titan:
-    host: "http://114.80.100.145:8887"
-    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
-    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+    host: "http://114.80.100.146:8888"
+    apiid: "03ec3f404d942a1eab0c541d2dc4d4e5"
+    apisecret: "964afc7aaf37bb7b89232cba18afd994ca22acfa"
   kafka:
     host: "kafka-dev.senseread.com"
     port: "9092"
@@ -28,9 +28,9 @@ test:
     dbname: "venus_test"
     sslmode: "disable"
   titan:
-    host: "http://114.80.100.145:8887"
-    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
-    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+    host: "http://114.80.100.146:8888"
+    apiid: "03ec3f404d942a1eab0c541d2dc4d4e5"
+    apisecret: "964afc7aaf37bb7b89232cba18afd994ca22acfa"
   kafka:
     host: "47.93.81.180"
     port: "9092"
@@ -46,9 +46,9 @@ production:
     dbname: "venus_production"
     sslmode: "disable"
   titan:
-    host: "http://101.251.99.164:8887"
-    apiid: "9e58754f23d2d55b017c50ecc442cc4c"
-    apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
+    host: "http://114.80.100.146:8888"
+    apiid: "03ec3f404d942a1eab0c541d2dc4d4e5"
+    apisecret: "964afc7aaf37bb7b89232cba18afd994ca22acfa"
   kafka:
     host: "kafka-dev.senseread.com"
     port: "9092"
