@@ -101,7 +101,7 @@ func (rule PostRules) IsSuitableParam() (bool, *errors.Error) {
 				HTTPStatus: 400,
 				Code:       400,
 				Title:      "all count of rules should be equal 30",
-				TitleZH:    "高低频规则总天数不等于30, 或者低频最小从2开始",
+				TitleZH:    "高低频规则总天数不等于30、低频最小从2开始或者区间之间不得有重复时间",
 			},
 			Detail: "高低频规则总天数需满30天, 或者低频最小从2开始",
 		}
