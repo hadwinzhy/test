@@ -39,26 +39,22 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 		}
 	}
 
-	// manually load map
-	if len(shopIDSlice) > 0 {
-		shopIDMap := make(map[uint]string)
-		var shopIDName []struct {
-			ID   uint   `json:"id"`
-			Name string `json:"name"`
-		}
-
-		database.POSTGRES.Table("shops").Select("id, name").Where("id in (?)", shopIDSlice).Where("deleted_at is NULL").Find(&shopIDName)
-		for _, pair := range shopIDName {
-			shopIDMap[pair.ID] = pair.Name
-		}
-
-		for i := range result {
-			result[i].ShopName = shopIDMap[result[i].ShopID]
-		}
-	}
-
-	// manually load mark
+	firstPicMap := make(map[string]string)
 	if len(personIDSlice) > 0 {
+		// manually load first pic
+		var persons []models.FrequentCustomerPeople
+		database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
+			Preload("Event").
+			Select("person_id, min(event_id) AS event_id").
+			Where("person_id in (?)", personIDSlice).
+			Group("person_id").
+			Find(&persons)
+
+		for _, person := range persons {
+			firstPicMap[person.PersonID] = person.Event.OriginalFace
+		}
+
+		// manually  load  mark
 		personIDMap := make(map[string]models.FrequentCustomerMark)
 
 		var marks []models.FrequentCustomerMark
@@ -74,6 +70,26 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 			if personIDMap[result[i].personID].Name != "" {
 				result[i].Name = personIDMap[result[i].personID].Name
 			}
+
+			result[i].FirstCaptureURL = firstPicMap[result[i].personID]
+		}
+	}
+
+	// manually load map
+	if len(shopIDSlice) > 0 {
+		shopIDMap := make(map[uint]string)
+		var shopIDName []struct {
+			ID   uint   `json:"id"`
+			Name string `json:"name"`
+		}
+
+		database.POSTGRES.Table("shops").Select("id, name").Where("id in (?)", shopIDSlice).Where("deleted_at is NULL").Find(&shopIDName)
+		for _, pair := range shopIDName {
+			shopIDMap[pair.ID] = pair.Name
+		}
+
+		for i := range result {
+			result[i].ShopName = shopIDMap[result[i].ShopID]
 		}
 	}
 
@@ -157,7 +173,6 @@ func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerR
 		Per:   form.PerPage,
 		Total: total,
 	}
-
 	// 组装结果
 	result := recordListMaker(peopleList)
 
