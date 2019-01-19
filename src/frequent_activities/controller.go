@@ -47,34 +47,19 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	var results models.FrequentCustomerPeoples
 	query := database.POSTGRES.
 		Where("frequent_customer_group_id in (?)", groupIDs).
-		Where("hour BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+		Where("created_at BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+	// todo: fix it ? hour 之前没有处理好 +8， 先改用 created_at 统计
 	query.Find(&results)
 
 	resultsReport := results.Activities()
-
-	//beforeMonth, day := monthHandler(params.Date)
-	queryLowHigh := database.POSTGRES.
-		Where("frequent_customer_group_id in (?)", groupIDs).
-		Where("hour BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
 
 	var rules models.FrequentCustomerRule
 	if dbError := database.POSTGRES.Where("company_id = ?", params.CompanyID).First(&rules).Error; dbError != nil {
 
 	}
-	var lowHigh models.FrequentCustomerPeoples
-	queryLowHigh.Find(&lowHigh)
-	//var personIDs []string
-	//for _, i := range lowHigh {
-	//	personIDs = append(personIDs, i.PersonID)
-	//}
-	//beforeMonth, day := monthHandler(params.Date)
-	//queryMonthLowHigh := database.POSTGRES.
-	//	Where("person_id in (?)", personIDs).
-	//	Where("hour BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
-	//var monthLowHigh models.FrequentCustomerPeoples
-	//queryMonthLowHigh.Find(&monthLowHigh)
+
 	var lowHighResult []models.OneStatic
-	lowHighResult = lowHigh.FrequentMonthStatic(rules)
+	lowHighResult = results.FrequentMonthStatic(rules)
 
 	var allResult models.FrequentCount
 	allResult.Vitality = make(map[string]interface{})

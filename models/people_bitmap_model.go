@@ -276,10 +276,7 @@ func listStaticFrequent(rule FrequentCustomerRule) []OneStatic {
 
 func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []OneStatic {
 	manyStatics := listStaticFrequent(frequentRule) // 高低频表
-	//log.Println(len(ff), manyStatics)
-	//if len(ff) == 0 {
-	//	return manyStatics
-	//}
+
 	for _, f := range ff {
 		manyStatics = getFrequentCount(f.Frequency, manyStatics)
 	}
