@@ -6,7 +6,7 @@ WORKDIR /go/src/siren
 
 ENV GIN_MODE release
 
-EXPOSE 8080
+EXPOSE 8090
 
 VOLUME [ "/go/src/siren/logs" ]
 
