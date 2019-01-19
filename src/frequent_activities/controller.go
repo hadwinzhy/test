@@ -63,18 +63,18 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	}
 	var lowHigh models.FrequentCustomerPeoples
 	queryLowHigh.Find(&lowHigh)
-	var personIDs []string
-	for _, i := range lowHigh {
-		personIDs = append(personIDs, i.PersonID)
-	}
-	beforeMonth, day := monthHandler(params.Date)
-	queryMonthLowHigh := database.POSTGRES.
-		Where("person_id in (?)", personIDs).
-		Where("hour BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
-	var monthLowHigh models.FrequentCustomerPeoples
-	queryMonthLowHigh.Find(&monthLowHigh)
+	//var personIDs []string
+	//for _, i := range lowHigh {
+	//	personIDs = append(personIDs, i.PersonID)
+	//}
+	//beforeMonth, day := monthHandler(params.Date)
+	//queryMonthLowHigh := database.POSTGRES.
+	//	Where("person_id in (?)", personIDs).
+	//	Where("hour BETWEEN ? AND ?", beforeMonth, day).Where("is_frequent_customer = ?", "true")
+	//var monthLowHigh models.FrequentCustomerPeoples
+	//queryMonthLowHigh.Find(&monthLowHigh)
 	var lowHighResult []models.OneStatic
-	lowHighResult = monthLowHigh.FrequentMonthStatic(rules)
+	lowHighResult = lowHigh.FrequentMonthStatic(rules)
 
 	var allResult models.FrequentCount
 	allResult.Vitality = make(map[string]interface{})
