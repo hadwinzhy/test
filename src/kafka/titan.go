@@ -135,7 +135,7 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 		var onePerson models.FrequentCustomerPeople
 		onePerson.PersonID = personUUID
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
-		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
+		hour := utils.CurrentTime(time.Unix(capturedAt, 0), "hour")
 		onePerson.Hour = hour
 		onePerson.Frequency = 1 //  这次来的，加1
 		onePerson.Interval = 0
@@ -163,7 +163,7 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 
 		//personID
 		var onePerson models.FrequentCustomerPeople
-		hour, _ := time.Parse("2006-01-02 15:00:00", time.Unix(capturedAt, 0).Format("2006-01-02 15:00:00"))
+		hour := utils.CurrentTime(time.Unix(capturedAt, 0), "hour")
 		if dbError := database.POSTGRES.Where("person_id = ? AND hour = ?", personUUID, hour).First(&onePerson).Error; dbError != nil {
 			onePerson = models.FrequentCustomerPeople{
 				PersonID:                personUUID,
