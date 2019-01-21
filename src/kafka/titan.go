@@ -112,7 +112,7 @@ func fetchDataByTitan(group *models.FrequentCustomerGroup, info InfoForKafkaProd
 	log.Println("titan values", string(responseByte))
 	// todo: fix it if status is not ok
 	if info.CompanyID != 0 {
-		if ok := personIDHandler(info.EventID, group.ID, info.PersonID, responseByte, info.CapturedAt); !ok {
+		if ok := personIDHandler(info.EventID, group.ID, info.PersonID, responseByte, info.CapturedAt, info.EventStatus); !ok {
 			return false
 		}
 	}
@@ -128,10 +128,10 @@ type result struct {
 
 type results []result
 
-func personIDHandler(eventID uint, groupID uint, personUUID string, values []byte, capturedAt int64) bool {
+func personIDHandler(eventID uint, groupID uint, personUUID string, values []byte, capturedAt int64, status string) bool {
 	valuesJson := gjson.ParseBytes(values)
 	exists := valuesJson.Get("candidates").Exists()
-	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) {
+	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) || status != "analyzed" {
 		var onePerson models.FrequentCustomerPeople
 		onePerson.PersonID = personUUID
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))

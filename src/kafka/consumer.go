@@ -108,11 +108,12 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 }
 
 type InfoForKafkaProducer struct {
-	CompanyID  uint   `json:"company_id"`
-	FaceID     string `json:"face_id"`
-	PersonID   string `json:"person_id"`
-	CapturedAt int64  `json:"captured_at"`
-	EventID    uint   `json:"event_id"`
+	CompanyID   uint   `json:"company_id"`
+	FaceID      string `json:"face_id"`
+	PersonID    string `json:"person_id"`
+	CapturedAt  int64  `json:"captured_at"`
+	EventID     uint   `json:"event_id"`
+	EventStatus string `json:"event_status"`
 }
 
 func mallInfoHandler(key []byte, values []byte) {
