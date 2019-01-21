@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -74,6 +75,7 @@ func (rule *FrequentCustomerRule) ReadableRule() ReadableFrequencyRule {
 		var lowRulePair []rulePair
 		var highRulePair []rulePair
 		if err := json.Unmarshal(rule.LowFrequency.RawMessage, &lowRulePair); err != nil {
+			fmt.Println("parse error", string(rule.LowFrequency.RawMessage), err)
 			return ReadableFrequencyRule{
 				LowFrequency:  lf,
 				HighFrequency: hf,
@@ -82,6 +84,7 @@ func (rule *FrequentCustomerRule) ReadableRule() ReadableFrequencyRule {
 		}
 
 		if err := json.Unmarshal(rule.HighFrequency.RawMessage, &highRulePair); err != nil {
+			fmt.Println("parse error", string(rule.HighFrequency.RawMessage), err)
 			return ReadableFrequencyRule{
 				LowFrequency:  lf,
 				HighFrequency: hf,
