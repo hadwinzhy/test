@@ -38,6 +38,7 @@ func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID s
 		person.PersonID = personID
 		person.Hour = hour
 		person.EventID = eventID
+		person.FrequentCustomerGroup = *group
 		err := database.POSTGRES.Save(&person).Error
 		if err != nil {
 			return person, err
@@ -107,8 +108,8 @@ func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID
 		&report,
 		models.FrequentCustomerReport{
 			FrequentCustomerGroupID: groupID,
-			Date:                    today,
-			Hour:                    hour,
+			Date: today,
+			Hour: hour,
 		},
 	)
 
@@ -136,7 +137,7 @@ func updateFrequentCustomerHighTimeTable(groupID uint, today time.Time, captureA
 		&table,
 		models.FrequentCustomerHighTimeTable{
 			FrequentCustomerGroupID: groupID,
-			Date:                    today,
+			Date: today,
 		},
 	)
 
@@ -158,6 +159,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	thisHour := utils.CurrentTime(captureTime, "hour")
 	// 1. 首先看这组companyID shopID里有没有这个personID的bitmap，bitmap里记录了一个值，当天这人有没有来过
 	person, err := fetchFrequentCustomerPerson(&fcGroup, personID, today, captureTime, eventID)
+
 	if err != nil {
 		return
 	}
