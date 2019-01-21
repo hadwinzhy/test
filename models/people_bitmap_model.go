@@ -194,13 +194,13 @@ func (ff FrequentCustomerPeoples) Activities() [4]OneStatic {
 	)
 	for _, f := range ff {
 		if f.Interval >= 1 && f.Interval <= 3 {
-			onePhase += f.Interval
+			onePhase += 1 //f.Interval
 		} else if f.Interval >= 4 && f.Interval <= 7 {
-			twoPhase += f.Interval
+			twoPhase += 1 //f.Interval
 		} else if f.Interval >= 8 && f.Interval <= 15 {
-			threePhase += f.Interval
+			threePhase += 1 // f.Interval
 		} else if f.Interval >= 16 {
-			fourPhase += f.Interval
+			fourPhase += 1 //f.Interval
 		}
 	}
 	counts := onePhase + twoPhase + threePhase + fourPhase
@@ -276,10 +276,7 @@ func listStaticFrequent(rule FrequentCustomerRule) []OneStatic {
 
 func (ff FrequentCustomerPeoples) FrequentMonthStatic(frequentRule FrequentCustomerRule) []OneStatic {
 	manyStatics := listStaticFrequent(frequentRule) // 高低频表
-	//log.Println(len(ff), manyStatics)
-	//if len(ff) == 0 {
-	//	return manyStatics
-	//}
+
 	for _, f := range ff {
 		manyStatics = getFrequentCount(f.Frequency, manyStatics)
 	}
