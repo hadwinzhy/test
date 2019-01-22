@@ -108,8 +108,10 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 		person.DefaultNumber = group.DefaultNumber
 		database.POSTGRES.Save(group)
 	}
-
+	originGroup := person.FrequentCustomerGroup
+	person.FrequentCustomerGroup = FrequentCustomerGroup{}
 	database.POSTGRES.Save(person)
+	person.FrequentCustomerGroup = originGroup
 }
 
 func (person *FrequentCustomerPeople) GetType() string {

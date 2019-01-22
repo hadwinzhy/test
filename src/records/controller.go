@@ -21,11 +21,11 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 	for i, people := range peopleList {
 		shopIDSlice = append(shopIDSlice, people.Event.ShopID)
 		personIDSlice = append(personIDSlice, people.PersonID)
-
+		fmt.Println(people.DefaultNumber)
 		result[i] = FrequentCustomerRecord{
 			FrequentCustomerPersonID: people.ID,
 			FirstCaptureURL:          people.Event.OriginalFace,
-			Name:                     fmt.Sprintf("回头客%d", peopleList[i].DefaultNumber), // 要根据person_id对应的去取，作标记的时候再做
+			Name:                     fmt.Sprintf("回头客%d", people.DefaultNumber), // 要根据person_id对应的去取，作标记的时候再做
 			CaptureAt:                people.Event.CaptureAt,
 			Age:                      people.Event.Age,
 			Gender:                   people.Event.Gender,
