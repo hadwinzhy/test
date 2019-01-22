@@ -129,8 +129,10 @@ func mallInfoHandler(key []byte, values []byte) {
 		return
 	}
 	// todo: personID or faceID?
-	if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
-		return
+	if info.PersonID != "" {
+		if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
+			return
+		}
 	}
 	fetchDataByTitan(group, info)
 
