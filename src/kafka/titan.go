@@ -133,7 +133,11 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 	exists := valuesJson.Get("candidates").Exists()
 	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) || status != "analyzed" {
 		var onePerson models.FrequentCustomerPeople
-		onePerson.PersonID = personUUID
+		if personUUID == "" {
+			onePerson.PersonID = utils.GenerateUUID(20)
+		} else {
+			onePerson.PersonID = personUUID
+		}
 		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
 		hour := utils.CurrentTime(time.Unix(capturedAt, 0), "hour")
 		onePerson.Hour = hour
