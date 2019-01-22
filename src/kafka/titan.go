@@ -129,9 +129,28 @@ type result struct {
 type results []result
 
 func personIDHandler(eventID uint, groupID uint, personUUID string, values []byte, capturedAt int64, status string) bool {
+	if status != "analyzed" {
+		var onePerson models.FrequentCustomerPeople
+		if personUUID == "" {
+			onePerson.PersonID = utils.GenerateUUID(20)
+		} else {
+			onePerson.PersonID = personUUID
+		}
+		onePerson.Date = utils.CurrentDate(time.Unix(capturedAt, 0))
+		hour := utils.CurrentTime(time.Unix(capturedAt, 0), "hour")
+		onePerson.Hour = hour
+		onePerson.Frequency = 1 //  这次来的，加1
+		onePerson.Interval = 0
+		onePerson.FrequentCustomerGroupID = groupID
+		onePerson.IsFrequentCustomer = false
+		onePerson.EventID = eventID
+		database.POSTGRES.Save(&onePerson)
+		workers.MallCountFrequentCustomerHandler(onePerson, groupID, capturedAt)
+		return true
+	}
 	valuesJson := gjson.ParseBytes(values)
 	exists := valuesJson.Get("candidates").Exists()
-	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) || status != "analyzed" {
+	if !exists || (exists && len(valuesJson.Get("candidates").Array()) == 0) {
 		var onePerson models.FrequentCustomerPeople
 		if personUUID == "" {
 			onePerson.PersonID = utils.GenerateUUID(20)
