@@ -103,7 +103,7 @@ func (person *FrequentCustomerPeople) UpdateValueWithBitMap(bitMap *FrequentCust
 		person.IsFrequentCustomer = false
 	}
 
-	if person.IsFrequentCustomer && person.DefaultNumber != 0 {
+	if person.IsFrequentCustomer && person.DefaultNumber == 0 {
 		group.DefaultNumber++
 		person.DefaultNumber = group.DefaultNumber
 		database.POSTGRES.Save(group)
