@@ -50,7 +50,9 @@ func fetchFrequentCustomerPerson(group *models.FrequentCustomerGroup, personID s
 	return person, nil
 }
 
-func updateBitMap(frequentPersonID uint, personID string, today time.Time) (models.FrequentCustomerPeopleBitMap, error) {
+func updateBitMap(frequentPerson *models.FrequentCustomerPeople, today time.Time) (models.FrequentCustomerPeopleBitMap, error) {
+	frequentPersonID := frequentPerson.ID
+	personID := frequentPerson.PersonID
 	var bitMap models.FrequentCustomerPeopleBitMap
 	database.POSTGRES.Preload("FrequentCustomerPeople").
 		Where("person_id = ?", personID).
@@ -66,6 +68,8 @@ func updateBitMap(frequentPersonID uint, personID string, today time.Time) (mode
 		return bitMap, err
 	} else {
 		// 来过的话就重新计算一下bitMap保存下里
+		frequentPerson.DefaultNumber = bitMap.FrequentCustomerPeople.DefaultNumber
+
 		var newBitMap models.FrequentCustomerPeopleBitMap
 		newBitMap.FrequentCustomerPeopleID = frequentPersonID
 		newBitMap.PersonID = personID
@@ -165,7 +169,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	}
 
 	// 1.1 有的话，这就是一个来过的人，记在bitmap中更新那一行
-	bitMap, err := updateBitMap(person.ID, personID, today)
+	bitMap, err := updateBitMap(&person, today)
 	if err != nil {
 		return
 	}
