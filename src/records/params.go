@@ -19,6 +19,7 @@ type FrequentCustomerRecord struct {
 	FirstCaptureURL          string    `json:"first_capture_url"`
 	Name                     string    `json:"name"`
 	CaptureAt                time.Time `json:"capture_at"`
+	LastCaptureAt            time.Time `json:"last_capture_at"`
 	Age                      uint      `json:"age"`
 	Gender                   uint      `json:"gender"`
 	ShopID                   uint      `json:"shop_id"`

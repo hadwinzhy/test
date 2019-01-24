@@ -69,6 +69,7 @@ func updateBitMap(frequentPerson *models.FrequentCustomerPeople, today time.Time
 	} else {
 		// 来过的话就重新计算一下bitMap保存下里
 		frequentPerson.DefaultNumber = bitMap.FrequentCustomerPeople.DefaultNumber
+		frequentPerson.LastCaptureAt = bitMap.FrequentCustomerPeople.Hour
 
 		var newBitMap models.FrequentCustomerPeopleBitMap
 		newBitMap.FrequentCustomerPeopleID = frequentPersonID
