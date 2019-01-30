@@ -65,7 +65,7 @@ func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutpu
 
 	} else {
 		database.POSTGRES.Model(&dataItems).
-			Select("date_trunc('day', hour) AS hour, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
+			Select("date_trunc('"+form.Period+"', hour) AS hour, sum(high_frequency) AS high_frequency, sum(low_frequency) AS low_frequency, sum(new_comer) AS new_comer, sum(sum_interval) AS sum_interval, sum(sum_times) AS sum_times").
 			Where("hour >= ?", fromTime).
 			Where("hour <= ?", toTime).
 			Where("frequent_customer_group_id in (?)", groupIDs).
