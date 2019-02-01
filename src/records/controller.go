@@ -27,6 +27,7 @@ func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCusto
 			FirstCaptureURL:          people.Event.OriginalFace,
 			Name:                     fmt.Sprintf("回头客%d", people.DefaultNumber), // 要根据person_id对应的去取，作标记的时候再做
 			CaptureAt:                people.Event.CaptureAt,
+			LastCaptureAt:            people.LastCaptureAt,
 			Age:                      people.Event.Age,
 			Gender:                   people.Event.Gender,
 			ShopID:                   people.Event.ShopID,
@@ -148,7 +149,7 @@ func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerR
 	// 回头group范围，根据personid聚合取最新的
 	query := database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
 		Preload("Event").
-		Select("person_id, frequent_customer_group_id, max(id) AS id, max(event_id) AS event_id, max(frequency) AS frequency, max(hour) AS hour, max(default_number) AS default_number")
+		Select("person_id, frequent_customer_group_id, max(id) AS id, max(event_id) AS event_id, max(frequency) AS frequency, max(hour) AS hour, max(last_capture_at) AS last_capture_at, max(default_number) AS default_number")
 
 	query = query.Where("frequent_customer_group_id in (?)", groupIDs)
 
