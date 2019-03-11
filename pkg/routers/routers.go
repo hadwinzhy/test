@@ -6,6 +6,7 @@ import (
 	"siren/pkg/middleware"
 	"siren/src/distributions"
 	"siren/src/frequent_activities"
+	"siren/src/frequent_person"
 	"siren/src/frequent_rules"
 	"siren/src/frequent_table"
 	"siren/src/records"
@@ -40,4 +41,5 @@ func InitRouters(r *gin.Engine) {
 	frequent_rules.Register(v1)
 	frequent_table.Register(v1)
 	frequent_activities.Register(v1)
+	frequent_person.RegisterJudgeFrequentPerson(v1) // 用于判断用户是否是回头客
 }
