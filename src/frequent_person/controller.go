@@ -32,11 +32,17 @@ func JudgeFrequentPersonHandler(c *gin.Context) {
 		Where("person_id = ?", params.PersonID).
 		Where("hour >= ?", today).
 		Where("hour < ?", today.AddDate(0, 0, 1)).
-		First(&person).Error; dbError == nil {
-		// 找到了不能当作回头客啦
-		c.JSON(http.StatusBadRequest, gin.H{"status": "false"})
+		First(&person).Error; dbError != nil {
+
+		c.JSON(http.StatusOK, gin.H{"status": "false"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "true"})
-
+	// 找到了不能当作回头客啦, 小于1次，不是回头客
+	if person.Frequency <= 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "false"})
+		return
+	} else {
+		c.JSON(http.StatusOK, gin.H{"status": "true"})
+		return
+	}
 }
