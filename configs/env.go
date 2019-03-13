@@ -29,6 +29,7 @@ func launchCollection() map[string]string {
 		"KAFKAPORT":        "kafka.port",
 		"KAFKAGROUP":       "kafka.group",
 		"KAFKATOPIC":       "kafka.topic",
+		"VENUSHOST":        "grpc.venus",
 	}
 	return collectionEnv
 }

@@ -18,6 +18,8 @@ dev:
     port: "9092"
     group: "Group_Dev"
     topic: "frequent_customer_dev"
+  grpc:
+    venus: "https://retail.readsense.cn:8080"
 
 test:
   db:
@@ -36,6 +38,8 @@ test:
     port: "9092"
     group: "Group_Test"
     topic: "frequent_customer_test"
+  grpc:
+    venus: "https://retail.readsense.cn:8080"
 
 production:
   db:
@@ -54,3 +58,5 @@ production:
     port: "9092"
     group: "Siren-Production"
     topic: "frequent_customer_production"
+  grpc:
+    venus: "https://lightyear.readsense.cn:8080"

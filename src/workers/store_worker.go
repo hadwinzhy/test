@@ -3,6 +3,8 @@ package workers
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"siren/configs"
 	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/logger"
@@ -113,8 +115,8 @@ func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID
 		&report,
 		models.FrequentCustomerReport{
 			FrequentCustomerGroupID: groupID,
-			Date: today,
-			Hour: hour,
+			Date:                    today,
+			Hour:                    hour,
 		},
 	)
 
@@ -142,7 +144,7 @@ func updateFrequentCustomerHighTimeTable(groupID uint, today time.Time, captureA
 		&table,
 		models.FrequentCustomerHighTimeTable{
 			FrequentCustomerGroupID: groupID,
-			Date: today,
+			Date:                    today,
 		},
 	)
 
@@ -186,6 +188,22 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 
 	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
 		go markNameNote(person.EventID, person.PersonID)
+	}
+
+	// 是回头客，触发 venus 回头客 消息推送
+	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
+		go func(eventID uint) {
+			if eventID != 0 {
+				url := fmt.Sprintf(configs.FetchFieldValue("VENUSHOST")+"/v2/api/company/notification_frequent_person?event_id=%d", person.EventID)
+				request, _ := http.NewRequest(http.MethodGet, url, nil)
+				client := http.DefaultClient
+				response, err := client.Do(request)
+				if err != nil {
+					return
+				}
+				defer response.Body.Close()
+			}
+		}(person.EventID)
 	}
 
 	// 3. 取一下频率规则，判断是不是高频次的人
