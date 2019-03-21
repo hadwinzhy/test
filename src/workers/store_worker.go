@@ -194,7 +194,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
 		go func(eventID uint) {
 			if eventID != 0 {
-				url := fmt.Sprintf(configs.FetchFieldValue("VENUSHOST")+"/v1/api/company/notification_frequent_person?event_id=%d&last_captured_at=%d", person.EventID, person.LastCaptureAt.Unix())
+				url := fmt.Sprintf(configs.FetchFieldValue("VENUSHOST")+"/v1/api/company/notification_frequent_person?event_id=%d&last_captured_at=%d&frequent_customer_id=%d", person.EventID, person.LastCaptureAt.Unix(), person.ID)
 				request, _ := http.NewRequest(http.MethodGet, url, nil)
 				client := http.DefaultClient
 				response, err := client.Do(request)
