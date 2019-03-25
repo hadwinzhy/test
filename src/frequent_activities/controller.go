@@ -47,8 +47,8 @@ func GetFrequentActivitiesHandler(context *gin.Context) {
 	var results models.FrequentCustomerPeoples
 	query := database.POSTGRES.
 		Where("frequent_customer_group_id in (?)", groupIDs).
-		Where("created_at BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
-	// todo: fix it ? hour 之前没有处理好 +8， 先改用 created_at 统计
+		Where("hour BETWEEN ? AND ?", left, right).Where("is_frequent_customer = ?", "true")
+
 	query.Find(&results)
 
 	resultsReport := results.Activities()
