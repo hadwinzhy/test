@@ -392,7 +392,7 @@ func RecordEventRemoveHandler(c *gin.Context) {
 
 	// 删除那一天的记录，就是找到frequent_customer_people进行删除
 	var tobeDeleted models.FrequentCustomerPeople
-	database.POSTGRES.Where("event_id = ?", c.Param("id")).First(&tobeDeleted)
+	database.POSTGRES.Where("event_id = ?", c.Param("event_id")).First(&tobeDeleted)
 
 	if tobeDeleted.ID != 0 {
 		database.POSTGRES.Delete(&tobeDeleted)
