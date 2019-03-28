@@ -6,9 +6,12 @@ import (
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
+	"siren/pkg/utils"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 )
 
 func recordListMaker(peopleList []models.FrequentCustomerPeople) []FrequentCustomerRecord {
@@ -396,6 +399,51 @@ func RecordEventRemoveHandler(c *gin.Context) {
 
 	if tobeDeleted.ID != 0 {
 		database.POSTGRES.Delete(&tobeDeleted)
+
+		// 修改之后的所有frequency
+		database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
+			Where("person_id = ?", event.PersonID).
+			Where("id >= ?", tobeDeleted.ID).
+			Updates(map[string]interface{}{"frequency": gorm.Expr("frequency - 1")})
+
+		database.POSTGRES.Model(&models.FrequentCustomerPeople{}).
+			Where("person_id = ?", event.PersonID).
+			Where("id >= ?", tobeDeleted.ID).
+			Where("frequency = 1").
+			Updates(map[string]interface{}{"is_frequent_customer": "false"})
+
+		var personBefore models.FrequentCustomerPeople
+		var personAfter models.FrequentCustomerPeople
+
+		// 修改下一个的interval
+		database.POSTGRES.Where("id > ?").Where("person_id = ?", event.PersonID).Order("id asc").First(&personAfter)
+		database.POSTGRES.Where("id < ?").Where("person_id = ?", event.PersonID).Order("id desc").First(&personBefore)
+		if personAfter.ID != 0 && personBefore.ID != 0 {
+			dayAfter := utils.CurrentDate(personAfter.Hour)
+			dayBefore := utils.CurrentDate(personBefore.Hour)
+			newInterval := (dayAfter.Sub(dayBefore) + time.Second) / (24 * time.Hour)
+			personAfter.Interval = uint(newInterval)
+			database.POSTGRES.Save(&personAfter)
+		}
+
+		// 修改最后一个人的bitmap
+		var bitmap models.FrequentCustomerPeopleBitMap
+		database.POSTGRES.Preload("FrequentCustomerPeople").Where("person_id = ?", event.PersonID).Order("id desc").First(&bitmap)
+		deletedDay := utils.CurrentDate(tobeDeleted.Hour)
+		lastDay := utils.CurrentDate(bitmap.FrequentCustomerPeople.Hour)
+
+		newInterval := (lastDay.Sub(deletedDay) + time.Second) / (24 * time.Hour)
+
+		if newInterval <= 30 {
+			subbit := 31 - newInterval
+			if subbit == 31 {
+				bitmap.BitMap = bitmap.BitMap[:31] + "0"
+			} else {
+				bitmap.BitMap = bitmap.BitMap[:subbit] + "0" + bitmap.BitMap[subbit+1:]
+			}
+			database.POSTGRES.Save(&bitmap)
+		}
+
 	} else {
 		errors.ResponseNotFound(c, "没有这条记录")
 		return
