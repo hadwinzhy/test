@@ -6,9 +6,7 @@ import (
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
-	"siren/pkg/utils"
 	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -264,7 +262,8 @@ func fetchFreuqentCustomerPerson(c *gin.Context, form CompanyShopParams) (models
 		return result, &structedErr
 	}
 
-	database.POSTGRES.Preload("FrequentCustomerGroup").Preload("Event").First(&result, fcIDInt)
+	// 已经删除的也找出来
+	database.POSTGRES.Unscoped().Preload("FrequentCustomerGroup").Preload("Event").First(&result, fcIDInt)
 
 	if result.ID == 0 {
 		structedErr := errors.MakeNotFoundError("未找到对应回头客")
@@ -398,31 +397,15 @@ func RecordEventRemoveHandler(c *gin.Context) {
 		return
 	}
 
-	// 要重新检测有没有同一天的
-	theday := utils.CurrentDate(event.CaptureAt)
-	thedayPlusOne := theday.AddDate(0, 0, 1)
-	var otherEvent models.Event
-	database.POSTGRES.Where("person_id = ?", person.PersonID).Where("capture_at > ?", theday).Where("capture_at < ?", thedayPlusOne).First(&otherEvent)
+	// 删除那一天的记录，就是找到frequent_customer_people进行删除
+	var tobeDeleted models.FrequentCustomerPeople
+	database.POSTGRES.Where("event_id = ?").First(&tobeDeleted)
 
-	// 存在event，不用改， 不存在其他event，更新bitmap, 不更新report
-	if otherEvent.ID == 0 {
-		var bm models.FrequentCustomerPeopleBitMap
-		database.POSTGRES.Preload("FrequentCustomerPeople").Where("person_id = ?", person.PersonID).Order("id desc").First(&bm)
-		if bm.ID > 0 {
-			bitMapDay := utils.CurrentDate(bm.FrequentCustomerPeople.Hour)
-			if bitMapDay.After(theday) {
-				days := bitMapDay.Sub(theday) / (time.Second * 86400)
-				length := len(bm.BitMap)
-				removalPos := length - 1 - int(days)
-
-				bytes := append([]byte(bm.BitMap)[0:removalPos], '0')
-				if removalPos < length-1 {
-					bytes = append(bytes, []byte(bm.BitMap)[removalPos+1:]...)
-				}
-				bm.BitMap = string(bytes)
-				database.POSTGRES.Save(&bm)
-			}
-		}
+	if tobeDeleted.ID != 0 {
+		database.POSTGRES.Delete(&tobeDeleted)
+	} else {
+		errors.ResponseNotFound(c, "没有这条记录")
+		return
 	}
 
 	c.JSON(200, event)
