@@ -390,13 +390,6 @@ func RecordEventRemoveHandler(c *gin.Context) {
 		return
 	}
 
-	event.PersonID = event.PersonID + "x" // 原来的personid是没有x字符的，为了区别和原来的不同
-
-	if err := database.POSTGRES.Save(&event).Error; err != nil {
-		errors.ResponseDBError(c, err.Error())
-		return
-	}
-
 	// 删除那一天的记录，就是找到frequent_customer_people进行删除
 	var tobeDeleted models.FrequentCustomerPeople
 	database.POSTGRES.Where("event_id = ?").First(&tobeDeleted)
