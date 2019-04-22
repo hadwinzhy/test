@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"siren/configs"
 	"siren/models"
+	"time"
 
 	"siren/src/workers"
 
@@ -64,6 +65,9 @@ func consumerInit() {
 func CountFrequentConsumer() {
 	consumerInit()
 	go MallCountFrequentConsumerParams.StartConsumer()
+	go MallCountFrequentConsumerParams.StartConsumer()
+	go MallCountFrequentConsumerParams.StartConsumer()
+	go MallCountFrequentConsumerParams.StartConsumer()
 	StoreCountFrequentConsumerParams.StartConsumer()
 }
 
@@ -93,11 +97,12 @@ func (params *CountFrequentConsumerParamsType) StartConsumer() {
 	}()
 
 	// consume messages, watch signals
+	workerHash := time.Now().UnixNano()
 	for {
 		select {
 		case msg, ok := <-consumer.Messages():
 			if ok {
-				fmt.Fprintf(os.Stdout, "%s/%d/%d\t%s\t%s\n", msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
+				fmt.Fprintf(os.Stdout, "%d %s/%d/%d\t%s\t%s\n", workerHash, msg.Topic, msg.Partition, msg.Offset, msg.Key, msg.Value)
 				params.handler(msg.Key, msg.Value)
 				consumer.MarkOffset(msg, "") // mark message as processed
 			}
