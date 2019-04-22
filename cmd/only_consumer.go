@@ -1,21 +1,21 @@
-// Package cmd implement helper functions
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"siren/initializers"
 	"siren/pkg/database"
 	"siren/pkg/logger"
-	"siren/pkg/routers"
 	"siren/src/kafka"
 
-	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "siren",
+func init() {
+	rootCmd.AddCommand(onlyConsumerCmd)
+}
+
+var onlyConsumerCmd = &cobra.Command{
+	Use:   "onlyconsumer",
 	Short: "Siren 0.0.1",
 	Long:  "Web server based on Golang with simplicity and performance.",
 	Run: func(cmd *cobra.Command, args []string) {
@@ -35,24 +35,16 @@ var rootCmd = &cobra.Command{
 		if os.Getenv("KAFKA_CONSUMER_SWITCH") != "OFF" {
 			go kafka.CountFrequentConsumer()
 		}
+
+		for {
+		}
 		// Step 5: init router
 		// go func() {
-		r := gin.Default()
-		routers.InitRouters(r)
 
-		r.Run(":8088")
 		// }()
 
 		// Step 6: init rpc
 		// startRpc()
 
 	},
-}
-
-// Execute ...
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }
