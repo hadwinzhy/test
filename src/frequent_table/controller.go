@@ -41,7 +41,7 @@ func GetFrequentTableHandler(context *gin.Context) {
 		}
 	}
 
-	sql := `id, frequent_customer_group_id, sum(phase_one) as phase_one, sum(phase_two) as phase_two, sum(phase_three) as phase_three,
+	sql := `id, frequent_customer_group_id, sum(phase_zero) as phase_zero, sum(phase_one) as phase_one, sum(phase_two) as phase_two, sum(phase_three) as phase_three,
        sum(phase_four) as phase_four,sum(phase_five) as phase_five,sum(phase_six) as phase_six,sum(phase_seven) as phase_seven,
        sum(phase_eight) as phase_eight`
 
