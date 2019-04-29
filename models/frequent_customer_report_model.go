@@ -25,6 +25,7 @@ type FrequentCustomerHighTimeTable struct {
 	BaseModel
 	FrequentCustomerGroupID uint      `gorm:"index"`
 	Date                    time.Time `gorm:"type:date"`
+	PhaseZero               uint      `gorm:"type:integer"`
 	PhaseOne                uint      `gorm:"type:integer"`
 	PhaseTwo                uint      `gorm:"type:integer"`
 	PhaseThree              uint      `gorm:"type:integer"`
@@ -38,6 +39,14 @@ type FrequentCustomerHighTimeTable struct {
 type FrequentCustomerHighTimeTables []FrequentCustomerHighTimeTable
 
 var hourPhaseMap = map[int]string{
+	0:  "PhaseZero",
+	1:  "PhaseZero",
+	2:  "PhaseZero",
+	3:  "PhaseZero",
+	4:  "PhaseZero",
+	5:  "PhaseZero",
+	6:  "PhaseZero",
+	7:  "PhaseZero",
 	8:  "PhaseOne",
 	9:  "PhaseOne",
 	10: "PhaseTwo",
@@ -61,6 +70,7 @@ func TimeToPhase(captureAt time.Time) string {
 }
 
 var phaseTitleMap = map[string]string{
+	"PhaseZero":  "0:00-8:00",
 	"PhaseOne":   "8:00-10:00",
 	"PhaseTwo":   "10:00-12:00",
 	"PhaseThree": "12:00-14:00",
@@ -88,6 +98,7 @@ type FrequentCustomerHighTimeTableSerializer struct {
 	ID         uint      `json:"id"`
 	GroupID    uint      `json:"group_id"`
 	Date       time.Time `json:"date"`
+	PhaseZero  uint      `json:"phase_zero"`
 	PhaseOne   uint      `json:"phase_one"`
 	PhaseTwo   uint      `json:"phase_two"`
 	PhaseThree uint      `json:"phase_three"`
@@ -103,6 +114,7 @@ func (table FrequentCustomerHighTimeTable) BasicSerializer() FrequentCustomerHig
 		ID:         table.ID,
 		GroupID:    table.FrequentCustomerGroupID,
 		Date:       table.Date,
+		PhaseZero:  table.PhaseZero,
 		PhaseOne:   table.PhaseOne,
 		PhaseTwo:   table.PhaseTwo,
 		PhaseThree: table.PhaseThree,
