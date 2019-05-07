@@ -18,7 +18,7 @@ RUN wget http://nginx.org/keys/nginx_signing.key; apt-key add nginx_signing.key;
 RUN echo 'deb http://nginx.org/packages/debian/ stretch nginx' >> /etc/apt/sources.list
 RUN echo 'deb-src http://nginx.org/packages/debian/ stretch nginx' >> /etc/apt/sources.list
 
-RUN apt-get update && apt-get install -q -y vim nginx postgresql-client && apt-get clean;
+RUN apt-get update && apt-get install -q -y vim nginx postgresql-client git openssh-client && apt-get clean;
 
 COPY deployments/private.readsense.cn.key /etc/nginx/private.readsense.cn.key
 
@@ -30,6 +30,12 @@ COPY deployments/nginx.conf /etc/nginx/nginx.conf
 
 # 运行环境初始化
 RUN go get -u github.com/golang/dep/cmd/dep
+
+COPY ssh /root/.ssh
+
+RUN chmod 0600 /root/.ssh/id_rsa
+
+RUN eval "$(ssh-agent)" && ssh-add /root/.ssh/id_rsa
 
 COPY Gopkg.lock .
 
