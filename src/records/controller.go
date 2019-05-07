@@ -2,13 +2,14 @@ package records
 
 import (
 	"fmt"
-	"siren/models"
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"strconv"
 	"time"
+
+	"bitbucket.org/readsense/venus-model/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -138,7 +139,7 @@ func eventListMaker(allPeople []models.FrequentCustomerPeople) []SingleEventReco
 }
 
 func RecordListProcessor(form FrequentCustomerRecordParams) ([]FrequentCustomerRecord, controllers.PaginationResponse, *errors.Error) {
-	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.shopIDs)
+	fcGroups := models.FetchFrequentCustomerGroup(database.POSTGRES, form.CompanyID, form.shopIDs)
 
 	var groupIDs []uint
 	for _, group := range fcGroups {

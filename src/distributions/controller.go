@@ -3,10 +3,11 @@ package distributions
 import (
 	"fmt"
 	"log"
-	"siren/models"
 	"siren/pkg/controllers"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
+
+	"bitbucket.org/readsense/venus-model/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,7 +53,7 @@ func reportOutputMapper(item models.FrequentCustomerReport) DistributionOutput {
 }
 
 func listDistributionProcessor(form ListDistributionParams) ([]DistributionOutput, *errors.Error) {
-	fcGroups := models.FetchFrequentCustomerGroup(form.CompanyID, form.shopIDs)
+	fcGroups := models.FetchFrequentCustomerGroup(database.POSTGRES, form.CompanyID, form.shopIDs)
 	fromTime, toTime := form.GetFromAndToTime()
 
 	var dataItems []models.FrequentCustomerReport

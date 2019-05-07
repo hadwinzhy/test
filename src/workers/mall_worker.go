@@ -1,9 +1,11 @@
 package workers
 
 import (
-	"siren/models"
+	"siren/pkg/database"
 	"siren/pkg/utils"
 	"time"
+
+	"bitbucket.org/readsense/venus-model/models"
 )
 
 func MallCountFrequentCustomerHandler(person models.FrequentCustomerPeople, groupID uint, capturedAt int64) {
@@ -14,7 +16,7 @@ func MallCountFrequentCustomerHandler(person models.FrequentCustomerPeople, grou
 		return
 	}
 
-	if person.IsHighFrequency() {
+	if person.IsHighFrequency(database.POSTGRES) {
 		updateFrequentCustomerHighTimeTable(groupID, today, capturedAt)
 	}
 }

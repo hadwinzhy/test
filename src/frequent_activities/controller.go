@@ -3,7 +3,7 @@ package frequent_activities
 import (
 	"log"
 	"net/http"
-	"siren/models"
+	"bitbucket.org/readsense/venus-model/models"
 	"siren/pkg/database"
 
 	"github.com/gin-gonic/gin"

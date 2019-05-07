@@ -2,6 +2,27 @@
 
 
 [[projects]]
+  digest = "1:1d080769e372813db92234b23b4d9bc7b5408703aefe7a388667c5de43548c39"
+  name = "bitbucket.org/readsense/venus-controller"
+  packages = ["controllers/errors"]
+  pruneopts = "UT"
+  revision = "7524ccca05b971cb264b75f3c1e038faec35ef18"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "nsy-frequencymodel-0507"
+  digest = "1:4e52bd2221991d99eae98ba0c6ee7759baafb7aaa01a36b68dc7e0bcd1916688"
+  name = "bitbucket.org/readsense/venus-model"
+  packages = [
+    "models",
+    "models/connectors",
+    "models/logger",
+    "utils",
+  ]
+  pruneopts = "UT"
+  revision = "5ad530f90141e4510c24fe907906e46f98db0f72"
+
+[[projects]]
   digest = "1:ed77032e4241e3b8329c9304d66452ed196e795876e14be677a546f36b94e67a"
   name = "github.com/DataDog/zstd"
   packages = ["."]
@@ -384,9 +405,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
+  digest = "1:427cdd2c12a3290ace873d2f9d3958d126c4d75596dbc09de05852da08a3dab5"
   name = "golang.org/x/crypto"
-  packages = ["ssh/terminal"]
+  packages = [
+    "bcrypt",
+    "blowfish",
+    "ssh/terminal",
+  ]
   pruneopts = "UT"
   revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
 
@@ -455,6 +480,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "bitbucket.org/readsense/venus-model/models",
     "github.com/bsm/sarama-cluster",
     "github.com/getsentry/raven-go",
     "github.com/gin-contrib/cors",

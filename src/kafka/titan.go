@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"siren/configs"
-	"siren/models"
+	"bitbucket.org/readsense/venus-model/models"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"siren/src/workers"

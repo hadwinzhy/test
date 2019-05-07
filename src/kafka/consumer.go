@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"siren/configs"
-	"siren/models"
+	"bitbucket.org/readsense/venus-model/models"
 	"time"
 
 	"siren/src/workers"

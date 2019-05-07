@@ -28,3 +28,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "bitbucket.org/readsense/venus-model"
+  branch = "nsy-frequencymodel-0507"

@@ -3,7 +3,7 @@ package frequent_table
 import (
 	"log"
 	"net/http"
-	"siren/models"
+	"bitbucket.org/readsense/venus-model/models"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"strconv"

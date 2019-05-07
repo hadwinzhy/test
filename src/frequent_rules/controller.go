@@ -3,7 +3,7 @@ package frequent_rules
 import (
 	"log"
 	"net/http"
-	"siren/models"
+	"bitbucket.org/readsense/venus-model/models"
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
 

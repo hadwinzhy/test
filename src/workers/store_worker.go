@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"siren/configs"
-	"siren/models"
 	"siren/pkg/database"
 	"siren/pkg/logger"
 	"siren/pkg/utils"
 	"strconv"
 	"time"
+
+	"bitbucket.org/readsense/venus-model/models"
 )
 
 func fetchFrequentCustomerGroup(companyID uint, shopID uint) (models.FrequentCustomerGroup, error) {
@@ -115,12 +116,12 @@ func updateFrequentCustomerReport(person *models.FrequentCustomerPeople, groupID
 		&report,
 		models.FrequentCustomerReport{
 			FrequentCustomerGroupID: groupID,
-			Date:                    today,
-			Hour:                    hour,
+			Date: today,
+			Hour: hour,
 		},
 	)
 
-	switch person.GetType() {
+	switch person.GetType(database.POSTGRES) {
 	case models.FREQUENT_CUSTOMER_TYPE_HIGH:
 		report.HighFrequency++
 	case models.FREQUENT_CUSTOMER_TYPE_LOW:
@@ -144,11 +145,11 @@ func updateFrequentCustomerHighTimeTable(groupID uint, today time.Time, captureA
 		&table,
 		models.FrequentCustomerHighTimeTable{
 			FrequentCustomerGroupID: groupID,
-			Date:                    today,
+			Date: today,
 		},
 	)
 
-	table.AddCount(time.Unix(captureAt, 0))
+	table.AddCount(database.POSTGRES, time.Unix(captureAt, 0))
 }
 
 func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, captureAt int64, eventID uint) {
@@ -178,7 +179,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	}
 
 	// 1.2 person里的数据更新
-	person.UpdateValueWithBitMap(&bitMap, &fcGroup)
+	person.UpdateValueWithBitMap(database.POSTGRES, &bitMap, &fcGroup)
 
 	// 2. report里的数据更新，记到当天的数据分布表中, 总人数，高频次数，低频次数，新客数，总到访间隔天数，总到访天数
 	err = updateFrequentCustomerReport(&person, fcGroup.ID, today, thisHour)
@@ -186,12 +187,12 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 		return
 	}
 
-	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
+	if person.GetType(database.POSTGRES) != models.FREQUENT_CUSTOMER_TYPE_NEW {
 		go markNameNote(person.EventID, person.PersonID)
 	}
 
 	// 是回头客，触发 venus 回头客 消息推送
-	if person.GetType() != models.FREQUENT_CUSTOMER_TYPE_NEW {
+	if person.GetType(database.POSTGRES) != models.FREQUENT_CUSTOMER_TYPE_NEW {
 		go func(eventID uint) {
 			if eventID != 0 {
 				url := fmt.Sprintf(configs.FetchFieldValue("VENUSHOST")+"/v1/api/company/notification_frequent_person?event_id=%d&last_captured_at=%d&frequent_customer_id=%d", person.EventID, person.LastCaptureAt.Unix(), person.ID)
@@ -207,7 +208,7 @@ func StoreFrequentCustomerHandler(companyID uint, shopID uint, personID string, 
 	}
 
 	// 3. 取一下频率规则，判断是不是高频次的人
-	if person.IsHighFrequency() {
+	if person.IsHighFrequency(database.POSTGRES) {
 		// 3.1 是的话，根据来的captureAt时间，记到高频表里
 		updateFrequentCustomerHighTimeTable(fcGroup.ID, today, captureAt)
 	}
