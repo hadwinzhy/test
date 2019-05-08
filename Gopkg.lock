@@ -11,7 +11,7 @@
 
 [[projects]]
   branch = "nsy-frequencymodel-0507"
-  digest = "1:4f9ba38778389a41d7db0c5ae27acd6932709eb8a3a36b04889d8d81c42b17e5"
+  digest = "1:10be4e36e7bb7df6693a8b2904db6324d735d3d63a4f1b48da41fcb5af5d9e2a"
   name = "bitbucket.org/readsense/venus-model"
   packages = [
     "models",
@@ -20,7 +20,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "bd0a6826ff0229c61bcf8c29478e0878196f313c"
+  revision = "e011e7629479eeed19f5473a5aef1fe50e3eb953"
 
 [[projects]]
   digest = "1:ed77032e4241e3b8329c9304d66452ed196e795876e14be677a546f36b94e67a"
