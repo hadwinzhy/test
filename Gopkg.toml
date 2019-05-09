@@ -31,4 +31,4 @@
 
 [[constraint]]
   name = "bitbucket.org/readsense/venus-model"
-  branch = "nsy-frequencymodel-0507"
+  version = "1.2.0"
