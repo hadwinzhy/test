@@ -43,8 +43,8 @@ test:
 
 production:
   db:
-    host: "rm-2zehteu0g2hrfj04wqo.pg.rds.aliyuncs.com"
-    port: "3432"
+    host: "117.78.27.229"
+    port: "5432"
     user: "lightyear"
     password: "Cu!VhbCuQ5jk"
     dbname: "venus_production"
