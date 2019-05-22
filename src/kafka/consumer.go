@@ -140,9 +140,7 @@ func mallInfoHandler(key []byte, values []byte) {
 	logger.Info("statistic time", "titan group add person", "start")
 	// todo: personID or faceID?
 	if info.PersonID != "" {
-		if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
-			return
-		}
+		go titanGroupAddPerson(group.GroupUUID, info.PersonID)
 	}
 	logger.Info("statistic time", "titan group add person", "count time", time.Now().Sub(nowGroupAddPerson).Nanoseconds()/1000000)
 	nowFetchDataByTitan := time.Now()
