@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/signal"
 	"siren/configs"
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/pkg/logger"
 	"time"
+
+	"bitbucket.org/readsense/venus-model/models"
 
 	"siren/src/workers"
 
@@ -127,16 +129,26 @@ func mallInfoHandler(key []byte, values []byte) {
 
 	var group *models.FrequentCustomerGroup
 	var ok bool
+	nowSaveGroupInfo := time.Now()
+	logger.Info("statistic time", "save group info", "start")
 	if ok, group = saveGroupInfo(info.CompanyID); !ok {
 		return
 	}
+	logger.Info("statistic time", "save group info", "count time", time.Now().Sub(nowSaveGroupInfo).Nanoseconds()/1000000)
+
+	nowGroupAddPerson := time.Now()
+	logger.Info("statistic time", "titan group add person", "start")
 	// todo: personID or faceID?
 	if info.PersonID != "" {
 		if ok := titanGroupAddPerson(group.GroupUUID, info.PersonID); !ok {
 			return
 		}
 	}
+	logger.Info("statistic time", "titan group add person", "count time", time.Now().Sub(nowGroupAddPerson).Nanoseconds()/1000000)
+	nowFetchDataByTitan := time.Now()
+	logger.Info("statistic time", "fetch data by titan", "start")
 	fetchDataByTitan(group, info)
+	logger.Info("statistic time", "fetch data by titan", "count time", time.Now().Sub(nowFetchDataByTitan).Nanoseconds()/1000000)
 
 }
 
