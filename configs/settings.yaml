@@ -43,14 +43,14 @@ test:
 
 production:
   db:
-    host: "117.78.27.229"
+    host: "192.168.1.62"
     port: "5432"
     user: "lightyear"
     password: "Cu!VhbCuQ5jk"
     dbname: "venus_production"
     sslmode: "disable"
   titan:
-    host: "http://114.115.158.219:8887"
+    host: "http://192.168.1.246:8887"
     apiid: "9e58754f23d2d55b017c50ecc442cc4c"
     apisecret: "6782e0a7a6102a53ea5f17d42a8bc31e8c62e17c"
   kafka:
