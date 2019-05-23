@@ -59,4 +59,4 @@ production:
     group: "Siren-Production"
     topic: "frequent_customer_production"
   grpc:
-    venus: "https://lightyear.readsense.cn:8080"
+    venus: "http://49.4.68.236:8082"
