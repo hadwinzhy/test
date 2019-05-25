@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"net/url"
 	"siren/configs"
-	"bitbucket.org/readsense/venus-model/models"
 	"siren/pkg/database"
 	"siren/pkg/utils"
 	"siren/src/workers"
 	"strings"
 	"time"
+
+	"bitbucket.org/readsense/venus-model/models"
 
 	"github.com/tidwall/gjson"
 )
@@ -63,6 +64,10 @@ func titanAddGroup(groupUUID string, name string) (bool, string) {
 		return false, "-1"
 	}
 	groupID := values.Get("group_id").String()
+	resgroupUUID := values.Get("group_uuid").String()
+	if groupID != "" {
+		groupID = resgroupUUID
+	}
 	return true, groupID
 }
 
@@ -191,10 +196,10 @@ func personIDHandler(eventID uint, groupID uint, personUUID string, values []byt
 			onePerson = models.FrequentCustomerPeople{
 				PersonID:                personUUID,
 				FrequentCustomerGroupID: groupID,
-				Date:                    utils.CurrentDate(time.Unix(capturedAt, 0)),
-				Hour:                    hour,
-				Frequency:               uint(len(resultsValues)), // 算上这次 +1
-				EventID:                 eventID,
+				Date:      utils.CurrentDate(time.Unix(capturedAt, 0)),
+				Hour:      hour,
+				Frequency: uint(len(resultsValues)), // 算上这次 +1
+				EventID:   eventID,
 			}
 			if len(resultsValues) <= 1 {
 				onePerson.Interval = 0 // 新客，间隔为 0

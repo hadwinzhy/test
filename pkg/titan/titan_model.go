@@ -48,8 +48,9 @@ type Person struct {
 
 // Group ...
 type Group struct {
-	Status      string `json:"status"`
-	GroupID     string `json:"group_id"`
+	Status string `json:"status"`
+	// GroupID     string `json:"group_id"`
+	GroupUUID   string `json:"group_uuid"`
 	Name        string `json:"name"`
 	PersonCount int    `json:"person_count"`
 }
