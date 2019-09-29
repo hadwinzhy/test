@@ -16,7 +16,7 @@ dev:
   kafka:
     host: "kafka-dev.senseread.com"
     port: "9092"
-    group: "Group_Dev"
+    group: "Group_Dev_SIREN"
     topic: "frequent_customer_dev"
   grpc:
     venus: "https://retail.readsense.cn:8080"
