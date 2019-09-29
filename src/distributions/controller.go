@@ -7,7 +7,7 @@ import (
 	"siren/pkg/controllers/errors"
 	"siren/pkg/database"
 
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 
 	"github.com/gin-gonic/gin"
 )

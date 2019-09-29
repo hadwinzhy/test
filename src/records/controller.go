@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"

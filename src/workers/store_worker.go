@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 )
 
 func fetchFrequentCustomerGroup(companyID uint, shopID uint) (models.FrequentCustomerGroup, error) {

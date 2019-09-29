@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"siren/initializers"
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 	"siren/pkg/database"
 
 	"github.com/spf13/cobra"

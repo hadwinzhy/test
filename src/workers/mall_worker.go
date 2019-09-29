@@ -6,7 +6,7 @@ import (
 	"siren/pkg/utils"
 	"time"
 
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 )
 
 func MallCountFrequentCustomerHandler(person models.FrequentCustomerPeople, groupID uint, capturedAt int64) {

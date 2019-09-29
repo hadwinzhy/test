@@ -10,7 +10,7 @@ import (
 	"siren/pkg/logger"
 	"time"
 
-	"bitbucket.org/readsense/venus-model/models"
+	"siren/venus/venus-model/models"
 
 	"siren/src/workers"
 

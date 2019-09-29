@@ -28,7 +28,3 @@
 [prune]
   go-tests = true
   unused-packages = true
-
-[[constraint]]
-  name = "bitbucket.org/readsense/venus-model"
-  version = "1.2.0"
