@@ -47,6 +47,6 @@ COPY . .
 
 RUN make install
 
-RUN make prod
+RUN make
 
 CMD [ "bash", "-c", "/go/src/siren/siren db create; /go/src/siren/siren db migrate; nginx; /go/src/siren/siren onlyconsumer & /go/src/siren/siren onlyconsumer & /go/src/siren/siren onlyconsumer & /go/src/siren/siren onlyconsumer & /go/src/siren/siren onlyconsumer & /go/src/siren/siren;" ]

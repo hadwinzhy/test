@@ -15,7 +15,7 @@ default:
 	go build -o ${BINARY} -v ${DEV_LDFLAGS} -tags=jsoniter
 
 install:
-	dep ensure
+	dep ensure -v
 # Installs our project: copies binaries
 dev:
 	fresh -c configs/development.conf
