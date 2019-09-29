@@ -14,7 +14,7 @@ import (
 
 	"siren/src/workers"
 
-	"github.com/bsm/sarama-cluster"
+	cluster "github.com/bsm/sarama-cluster"
 )
 
 type CountFrequentConsumerParamsType struct {
@@ -67,7 +67,7 @@ func consumerInit() {
 func CountFrequentConsumer() {
 	consumerInit()
 	go MallCountFrequentConsumerParams.StartConsumer()
-	StoreCountFrequentConsumerParams.StartConsumer()
+	// StoreCountFrequentConsumerParams.StartConsumer()
 }
 
 func (params *CountFrequentConsumerParamsType) StartConsumer() {
